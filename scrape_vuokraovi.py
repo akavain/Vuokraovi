@@ -8,7 +8,7 @@ import os
 import time
 
 # --- CONFIG ---
-SHEET_NAME = "Vuokraovi Data"  # Change to your Google Sheet name
+SHEET_NAME = "Vuokraovi_Github"  # Change to your Google Sheet name
 CREDS_FILE = "credentials.json"  # Google service account credentials
 
 URLS = [
