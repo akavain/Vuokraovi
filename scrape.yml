@@ -1,0 +1,27 @@
+name: Weekly Vuokraovi Scrape
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"  # Every Monday at 7:00 AM UTC (9:00 AM Helsinki time)
+  workflow_dispatch:       # Also allows manual trigger from GitHub UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 gspread google-auth
+
+      - name: Run scraper
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: python scrape_vuokraovi.py
