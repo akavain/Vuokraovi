@@ -4,7 +4,7 @@ Automated weekly scraper that collects rental apartment vacancy counts from [vuo
 
 ## What it does
 
-Every Monday at 9:00 AM Helsinki time (07:00 UTC), GitHub Actions runs `scrape_vuokraovi.py` which:
+Every Monday at 6:00 AM Helsinki time (03:00 UTC), GitHub Actions runs `scrape_vuokraovi.py` which:
 1. Visits 48 predefined search URLs on vuokraovi.com
 2. Extracts the apartment count from the `#searchResultCount` element on each page
 3. Appends a row per URL to a Google Sheet with columns: `QueryDate`, `URL`, `Vacancy`
@@ -30,7 +30,7 @@ Results are written to a Google Sheet named **Vuokraovi_Github**. The first tab 
 
 ## Power BI
 
-The Google Sheet is connected to a Power BI Desktop report. The scraped data is merged with the mapping table on the URL column to produce a full dataset with all metadata. This is then appended to historical data collected prior to automation.
+The Google Sheet is connected to a Power BI Desktop report. The scraped data is merged with the mapping table on the URL column to produce a full dataset with all metadata. The Power BI report is set to automatically refresh data at 8 AM on Mondays.
 
 ## Setup (for new environments)
 
