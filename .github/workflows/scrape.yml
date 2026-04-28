@@ -2,7 +2,7 @@ name: Weekly Vuokraovi Scrape
 
 on:
   schedule:
-    - cron: "0 7 * * 1"  # Every Monday at 7:00 AM UTC (9:00 AM Helsinki time)
+    - cron: "0 3 * * 1"  # Every Monday at 7:00 AM UTC (9:00 AM Helsinki time)
   workflow_dispatch:       # Also allows manual trigger from GitHub UI
 
 jobs:
