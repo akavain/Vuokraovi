@@ -105,6 +105,12 @@ def main():
     if sheet.row_count == 0 or sheet.cell(1, 1).value is None:
         sheet.append_row(["QueryDate", "URL", "Vacancy"])
 
+    # Check if today's data already exists
+    existing = sheet.col_values(1)
+    if today in existing:
+        print(f"Data for {today} already exists. Skipping.")
+        return
+
     rows = []
     for url in URLS:
         count = scrape_count(url)
