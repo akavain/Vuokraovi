@@ -8,6 +8,7 @@ Every Monday at 6:00 AM Helsinki time (03:00 UTC), GitHub Actions runs `scrape_v
 1. Visits 48 predefined search URLs on vuokraovi.com
 2. Extracts the apartment count from the `#searchResultCount` element on each page
 3. Appends a row per URL to a Google Sheet with columns: `QueryDate`, `URL`, `Vacancy`
+4. If data has already been pulled from Vuokraovi, e.g. with a manual trigger, the script will not copy duplicates for the same day.
 
 ## URL structure
 
