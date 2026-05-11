@@ -2,7 +2,7 @@ name: Keep Alive
 
 on:
   schedule:
-    - cron: "0 2 * * 1"  # Every Monday at 2:00 AM UTC, one hour before the scraper
+    - cron: "0 2 * * 0"  # Every Sunday at 2:00 AM UTC, one hour before the scraper
   workflow_dispatch:
 
 jobs:
