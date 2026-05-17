@@ -1,9 +1,11 @@
 name: Keep Alive
-
 on:
   schedule:
     - cron: "0 2 * * 0"  # Every Sunday at 2:00 AM UTC, one hour before the scraper
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   keep-alive:
@@ -11,12 +13,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Keep alive ping
         run: |
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           echo "Last keep-alive: $(date)" > keep_alive.txt
           git add keep_alive.txt
-          git commit -m "Keep alive $(date)"
+          git commit -m "Keep alive $(date)" || exit 0
           git push
