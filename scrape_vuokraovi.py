@@ -12,6 +12,7 @@ SHEET_NAME = "Vuokraovi_Github"  # Change to your Google Sheet name
 CREDS_FILE = "credentials.json"  # Google service account credentials
 
 URLS = [
+    # Helsinki, Espoo, Vantaa (original 48)
     "https://www.vuokraovi.com/vuokra-asunnot/helsinki?haku=m2369410862",
     "https://www.vuokraovi.com/vuokra-asunnot/helsinki?haku=m2369410781",
     "https://www.vuokraovi.com/vuokra-asunnot/helsinki?haku=m2369410692",
@@ -60,6 +61,43 @@ URLS = [
     "https://www.vuokraovi.com/vuokra-asunnot/vantaa?haku=m2395889464",
     "https://www.vuokraovi.com/vuokra-asunnot/vantaa?haku=m2395889614",
     "https://www.vuokraovi.com/vuokra-asunnot/vantaa?haku=m2395889757",
+    # --- Turku & Tampere (added Oct 2026) ---
+    # Kaikki / Vuokra: Turku 1-4+, Tampere 1-4+
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625550973",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625550981",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625550987",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625550993",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551000",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551007",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551016",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551024",
+    # Heti vapaa / Vuokra: Turku 1-4+, Tampere 1-4+
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551031",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551042",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551053",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551058",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551068",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551072",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551080",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551086",
+    # Kaikki / Asumisoikeus: Turku 1-4+, Tampere 1-4+
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551092",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551094",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551101",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551108",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551116",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551124",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551130",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551135",
+    # Heti vapaa / Asumisoikeus: Turku 1-4+, Tampere 1-4+
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551140",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551148",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551156",
+    "https://www.vuokraovi.com/vuokra-asunnot/turku?haku=m2625551169",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551174",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551182",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551190",
+    "https://www.vuokraovi.com/vuokra-asunnot/tampere?haku=m2625551198",
 ]
 
 HEADERS = {
