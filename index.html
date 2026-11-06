@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vuokraovi tilastot</title>
+<style>
+:root {
+  --bg: #F8E6DA;          /* Vaalea keramiikka */
+  --card: #FFFFFF;
+  --ink: #000000;
+  --ink-2: #3d4a41;
+  --ink-3: #6b766e;
+  --title: #004722;       /* Havu */
+  --line: #004722;        /* Havu */
+  --accent: #FFA1E7;      /* Horsma */
+  --soft: #94A898;        /* Jäkälä */
+  --soft-bg: #eef1ee;
+  --grid: #e6e2dc;
+  --chip-on-bg: #004722;
+  --chip-on-ink: #FFFFFF;
+  --chip-border: #94A898;
+  --trend: #000000;
+  --note-bg: #FCD4F4;     /* Vaalea horsma */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1712; --card: #16231b; --ink: #e9efea; --ink-2: #c3cec6; --ink-3: #8e9b92;
+    --title: #94A898; --line: #94A898; --accent: #FFA1E7; --soft: #436F4C; --soft-bg: #1d2e24;
+    --grid: #26372d; --chip-on-bg: #94A898; --chip-on-ink: #0e1712; --chip-border: #436F4C;
+    --trend: #e9efea; --note-bg: #3a2635;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.4; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+header h1 { color: var(--title); font-size: 30px; font-weight: 400; margin: 0 0 4px; }
+header p { margin: 0; color: var(--ink-2); }
+.card { background: var(--card); border-radius: 16px; padding: 18px 20px; margin-top: 16px; }
+.card h2 { color: var(--title); font-size: 19px; font-weight: 400; margin: 0 0 4px; }
+.card .sub { color: var(--ink-3); font-size: 13px; margin: 0 0 10px; }
+.filters { display: flex; flex-wrap: wrap; gap: 14px 28px; }
+.fgroup .flabel { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: 14px; border: 1px solid var(--chip-border); background: transparent; color: var(--ink); border-radius: 999px; padding: 5px 12px; cursor: pointer; min-height: 32px; }
+.chip[aria-pressed="true"] { background: var(--chip-on-bg); color: var(--chip-on-ink); border-color: var(--chip-on-bg); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.kpi { background: var(--card); border-radius: 16px; padding: 16px 18px; }
+.kpi .k { font-size: 13px; color: var(--ink-3); }
+.kpi .v { font-size: 30px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi .d { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.note { background: var(--note-bg); color: var(--ink); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin: 6px 0 10px; }
+.legend { display: flex; gap: 18px; font-size: 13px; color: var(--ink-2); align-items: center; margin-bottom: 4px; }
+.legend .sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--line); vertical-align: middle; margin-right: 6px; }
+.legend .sw.trend { border-top: 2px dashed var(--trend); }
+.legend label { cursor: pointer; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.tip { position: absolute; pointer-events: none; background: var(--card); border: 1px solid var(--grid); box-shadow: 0 4px 14px rgba(0,0,0,.12); border-radius: 8px; padding: 8px 10px; font-size: 13px; white-space: nowrap; display: none; z-index: 2; }
+.tip b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.multi-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin-top: 8px; }
+.mini { border: 1px solid var(--grid); border-radius: 12px; padding: 10px 12px; }
+.mini .t { font-size: 14px; color: var(--ink-2); }
+.mini .v { font-size: 20px; font-variant-numeric: tabular-nums; }
+.mini .d { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 400; color: var(--ink-3); font-size: 13px; }
+td .chg { display: block; font-size: 11px; color: var(--ink-3); }
+tr.total td { font-weight: 700; }
+.tablewrap { overflow-x: auto; }
+footer { color: var(--ink-3); font-size: 12px; margin-top: 20px; }
+footer a { color: inherit; }
+.axis text { fill: var(--ink-3); font-size: 11px; }
+.err { color: #a00; }
+@media (max-width: 760px) { th, td { padding: 6px 5px; } .card { padding: 16px 14px; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } header h1 { font-size: 24px; } .kpi .v { font-size: 24px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Asuntoja listattuna Vuokraovessa</h1>
+    <p id="updated">Ladataan…</p>
+  </header>
+
+  <section class="card" aria-label="Suodattimet">
+    <div class="filters" id="filters"></div>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="Tunnusluvut"></section>
+
+  <section class="card">
+    <h2>Ilmoituksia valinnalla</h2>
+    <p class="sub">Viikoittainen ilmoitusmäärä. Piste puuttuu, jos jokin valituista hauista puuttuu sinä päivänä.</p>
+    <div id="mainNote"></div>
+    <div class="legend"><span><span class="sw"></span>Ilmoituksia</span><label><input type="checkbox" id="trendToggle" checked> <span class="sw trend"></span>Lineaarinen trendi</label></div>
+    <div class="chart" id="mainChart"></div>
+  </section>
+
+  <section class="card">
+    <div class="multi-head">
+      <div>
+        <h2>Jaottelu</h2>
+        <p class="sub">Jokaisella kuvalla on oma pystyakselinsa, joten kuvat näyttävät kehityksen suunnan, eivät keskinäistä kokoa.</p>
+      </div>
+      <div class="chips" id="splitChips"></div>
+    </div>
+    <div class="grid" id="multiples"></div>
+  </section>
+
+  <section class="card">
+    <h2>Viimeisin viikko kaupungeittain</h2>
+    <p class="sub" id="tableSub"></p>
+    <div class="tablewrap"><table id="latestTable"></table></div>
+  </section>
+
+  <footer>
+    <p>Lähde: <a href="https://www.vuokraovi.com">vuokraovi.com</a>, tallennetut haut (kerrostalot). Tiedot päivittyvät automaattisesti sunnuntaisin.
+    Turku ja Tampere ovat mukana 1.11.2026 alkaen. Huom: Heti vapaa -ilmoitukset sisältyvät Kaikki-lukuun, joten Tila-valinta on aina yksi kerrallaan.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+const DIMS = [
+  { key: 'Kaupunki', label: 'Kaupunki', multi: true },
+  { key: 'Huoneita', label: 'Huoneluku', multi: true, fmt: v => v + ' h' },
+  { key: 'Tila', label: 'Tila', multi: false },
+  { key: 'Asumismuoto', label: 'Asumismuoto', multi: true },
+];
+const RANGES = [ ['3 kk', 91], ['6 kk', 182], ['12 kk', 365], ['Kaikki', 0] ];
+const ORDER = { Kaupunki: ['Helsinki','Espoo','Vantaa','Turku','Tampere'], Huoneita: ['1','2','3','4+'], Tila: ['Kaikki','Heti vapaa'], Asumismuoto: ['Vuokra','Asumisoikeus'] };
+const nf = new Intl.NumberFormat('fi-FI');
+const fmtN = v => nf.format(Math.round(v));
+const fmtD = iso => { const [y,m,d] = iso.split('-'); return `${+d}.${+m}.${y}`; };
+const fmtSigned = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + nf.format(Math.abs(Math.round(v)));
+const fmtPct = (v, base) => base ? ` (${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v / base * 100).toFixed(1).replace('.', ',')} %)` : '';
+
+let mapping = [], byDate = new Map(), dates = [];
+const state = {
+  Kaupunki: new Set(['Helsinki','Espoo','Vantaa']),
+  Huoneita: new Set(['1','2','3','4+']),
+  Tila: new Set(['Kaikki']),
+  Asumismuoto: new Set(['Vuokra']),
+  range: 0, split: 'Kaupunki', trend: true,
+};
+
+function parseCSV(text) {
+  const lines = text.replace(/\r/g, '').split('\n').filter(Boolean);
+  const head = lines.shift().split(',');
+  return lines.map(l => { const c = l.split(','); return Object.fromEntries(head.map((h, i) => [h, c[i]])); });
+}
+
+function selectedUrls(overrides = {}) {
+  return mapping.filter(m => DIMS.every(d => (overrides[d.key] || state[d.key]).has(m[d.key]))).map(m => m.URL);
+}
+
+// Sum of the given URLs per date; null where any URL is missing that date.
+function series(urls) {
+  if (!urls.length) return [];
+  return dates.map(date => {
+    const row = byDate.get(date);
+    let sum = 0;
+    for (const u of urls) { const v = row.get(u); if (v === undefined) return { date, v: null }; sum += v; }
+    return { date, v: sum };
+  });
+}
+
+function inRange(pts) {
+  if (!state.range || !dates.length) return pts;
+  const last = new Date(dates[dates.length - 1]);
+  const from = new Date(last - state.range * 864e5).toISOString().slice(0, 10);
+  return pts.filter(p => p.date >= from);
+}
+
+function valueAtOrBefore(pts, iso) {
+  for (let i = pts.length - 1; i >= 0; i--) if (pts[i].date <= iso && pts[i].v !== null) return pts[i];
+  return null;
+}
+
+// ---------- filters ----------
+function renderFilters() {
+  const el = document.getElementById('filters');
+  el.innerHTML = '';
+  for (const d of DIMS) {
+    const g = document.createElement('div'); g.className = 'fgroup';
+    g.innerHTML = `<div class="flabel">${d.label}</div>`;
+    const chips = document.createElement('div'); chips.className = 'chips';
+    for (const v of ORDER[d.key]) {
+      const b = document.createElement('button'); b.className = 'chip'; b.type = 'button';
+      b.textContent = d.fmt ? d.fmt(v) : v;
+      b.setAttribute('aria-pressed', state[d.key].has(v));
+      b.onclick = () => {
+        const s = state[d.key];
+        if (!d.multi) { s.clear(); s.add(v); }
+        else if (s.has(v)) { if (s.size > 1) s.delete(v); }
+        else s.add(v);
+        update();
+      };
+      chips.appendChild(b);
+    }
+    g.appendChild(chips); el.appendChild(g);
+  }
+  const g = document.createElement('div'); g.className = 'fgroup';
+  g.innerHTML = '<div class="flabel">Aikaväli</div>';
+  const chips = document.createElement('div'); chips.className = 'chips';
+  for (const [lbl, days] of RANGES) {
+    const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = lbl;
+    b.setAttribute('aria-pressed', state.range === days);
+    b.onclick = () => { state.range = days; update(); };
+    chips.appendChild(b);
+  }
+  g.appendChild(chips); el.appendChild(g);
+}
+
+// ---------- line chart ----------
+function drawLine(container, pts, opts = {}) {
+  const W = container.clientWidth || 600;
+  const H = opts.height || (W < 500 ? 240 : 320);
+  const m = opts.compact ? { t: 6, r: 6, b: 4, l: 6 } : { t: 12, r: W < 500 ? 48 : 64, b: 28, l: W < 500 ? 44 : 56 };
+  const valid = pts.filter(p => p.v !== null);
+  container.innerHTML = '';
+  if (valid.length === 0) { container.innerHTML = '<p class="sub">Ei dataa valinnalla.</p>'; return; }
+  const x0 = new Date(pts[0].date).getTime(), x1 = new Date(pts[pts.length - 1].date).getTime();
+  const span = Math.max(x1 - x0, 1);
+  const vals = valid.map(p => p.v);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.12 || Math.max(hi * 0.05, 1);
+  lo = Math.max(0, lo - pad); hi = hi + pad;
+  const X = t => m.l + (W - m.l - m.r) * (new Date(t).getTime() - x0) / span;
+  const Y = v => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo));
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', opts.label || 'Viivakaavio');
+  const add = (tag, attrs, parent = svg) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+
+  if (!opts.compact) {
+    const ax = add('g', { class: 'axis' });
+    const step = niceStep((hi - lo) / 5);
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+      add('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: 'var(--grid)', 'stroke-width': 1 }, ax);
+      const t = add('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, ax); t.textContent = fmtN(v);
+    }
+    // month ticks: spacing adapts to width, year shown on the first label and when it changes
+    const first = new Date(x0); const cur = new Date(first.getFullYear(), first.getMonth() + 1, 1);
+    const totalMonths = Math.max(1, Math.round(span / (30.4 * 864e5)));
+    const fit = Math.max(1, Math.floor((W - m.l - m.r) / 64));
+    const every = [1, 2, 3, 4, 6, 12].find(n => totalMonths / n <= fit) || 12;
+    let i = 0, lastYear = null;
+    while (cur.getTime() <= x1) {
+      if (i % every === 0) {
+        const iso = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-01`;
+        const t = add('text', { x: X(iso), y: H - 8, 'text-anchor': 'middle' }, ax);
+        const showYear = lastYear !== cur.getFullYear();
+        t.textContent = cur.toLocaleDateString('fi-FI', { month: 'short' }).replace('.', '') + (showYear ? ' ' + cur.getFullYear() : '');
+        lastYear = cur.getFullYear();
+      }
+      cur.setMonth(cur.getMonth() + 1); i++;
+    }
+  }
+
+  // line segments (gaps where null)
+  let d = '', pen = false;
+  for (const p of pts) {
+    if (p.v === null) { pen = false; continue; }
+    d += (pen ? 'L' : 'M') + X(p.date).toFixed(1) + ',' + Y(p.v).toFixed(1); pen = true;
+  }
+  add('path', { d, fill: 'none', stroke: 'var(--line)', 'stroke-width': opts.compact ? 1.75 : 2.25, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+
+  if (opts.trend && valid.length >= 3) {
+    const xs = valid.map(p => new Date(p.date).getTime()), ys = vals;
+    const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+    let sxy = 0, sxx = 0; for (let k = 0; k < n; k++) { sxy += (xs[k] - mx) * (ys[k] - my); sxx += (xs[k] - mx) ** 2; }
+    const b = sxx ? sxy / sxx : 0, a = my - b * mx;
+    const tA = xs[0], tB = xs[n - 1];
+    const iso = t => new Date(t).toISOString().slice(0, 10);
+    add('line', { x1: X(iso(tA)), y1: Y(a + b * tA), x2: X(iso(tB)), y2: Y(a + b * tB), stroke: 'var(--trend)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4', opacity: .7 });
+  }
+
+  // last point marker + direct label
+  const last = valid[valid.length - 1];
+  add('circle', { cx: X(last.date), cy: Y(last.v), r: opts.compact ? 3.5 : 5, fill: 'var(--accent)', stroke: 'var(--line)', 'stroke-width': 2 });
+  if (!opts.compact) {
+    const t = add('text', { x: X(last.date) + 10, y: Y(last.v) + 4, fill: 'var(--ink)', 'font-size': 13 }); t.textContent = fmtN(last.v);
+  }
+
+  // hover layer
+  if (!opts.compact) {
+    const cross = add('line', { y1: m.t, y2: H - m.b, stroke: 'var(--ink-3)', 'stroke-width': 1, opacity: 0 });
+    const dot = add('circle', { r: 5, fill: 'var(--card)', stroke: 'var(--line)', 'stroke-width': 2, opacity: 0 });
+    const tip = document.createElement('div'); tip.className = 'tip'; container.appendChild(tip);
+    const hit = add('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' });
+    const move = ev => {
+      const r = svg.getBoundingClientRect();
+      const px = (ev.clientX - r.left) * (W / r.width);
+      let best = null, bd = Infinity;
+      for (const p of valid) { const dd = Math.abs(X(p.date) - px); if (dd < bd) { bd = dd; best = p; } }
+      if (!best) return;
+      const idx = valid.indexOf(best), prev = valid[idx - 1];
+      cross.setAttribute('x1', X(best.date)); cross.setAttribute('x2', X(best.date)); cross.setAttribute('opacity', .5);
+      dot.setAttribute('cx', X(best.date)); dot.setAttribute('cy', Y(best.v)); dot.setAttribute('opacity', 1);
+      tip.innerHTML = `${fmtD(best.date)}<br><b>${fmtN(best.v)}</b> ilmoitusta` + (prev ? `<br><span style="color:var(--ink-3)">${fmtSigned(best.v - prev.v)} vs. ${fmtD(prev.date)}</span>` : '');
+      tip.style.display = 'block';
+      const sx = r.width / W, left = X(best.date) * sx;
+      tip.style.left = Math.min(left + 12, r.width - tip.offsetWidth - 4) + 'px';
+      tip.style.top = Math.max(0, Y(best.v) * sx - tip.offsetHeight - 12) + 'px';
+    };
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); });
+  }
+  container.insertBefore(svg, container.firstChild);
+}
+function niceStep(raw) {
+  const p = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+  const f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
+}
+
+// ---------- sections ----------
+function renderKpis(full) {
+  const valid = full.filter(p => p.v !== null);
+  const el = document.getElementById('kpis');
+  if (!valid.length) { el.innerHTML = ''; return; }
+  const last = valid[valid.length - 1];
+  const prev = valid[valid.length - 2];
+  const ago = days => valueAtOrBefore(valid, new Date(new Date(last.date) - days * 864e5).toISOString().slice(0, 10));
+  const card = (k, v, d) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
+  const chg = (p, lbl) => p && p !== last ? card(lbl, fmtSigned(last.v - p.v), `${fmtPct(last.v - p.v, p.v).trim()} vs. ${fmtD(p.date)}`) : card(lbl, '–', 'ei vertailutietoa');
+  el.innerHTML = card('Ilmoituksia nyt', fmtN(last.v), fmtD(last.date)) + chg(prev, 'Muutos edellisestä') + chg(ago(28), 'Muutos 4 viikossa') + chg(ago(365), 'Muutos vuodessa');
+}
+
+function renderMain(full) {
+  const pts = inRange(full);
+  const note = document.getElementById('mainNote');
+  const firstComplete = full.find(p => p.v !== null);
+  note.innerHTML = firstComplete && firstComplete.date > dates[0]
+    ? `<div class="note">Valinnan yhtenäinen historia alkaa ${fmtD(firstComplete.date)}. Osa valituista hauista on lisätty myöhemmin (esim. Turku ja Tampere 1.11.2026).</div>` : '';
+  drawLine(document.getElementById('mainChart'), pts, { trend: state.trend, label: 'Ilmoitusten määrä ajan yli' });
+}
+
+function renderMultiples() {
+  const sc = document.getElementById('splitChips');
+  sc.innerHTML = '';
+  for (const [key, lbl] of [['Kaupunki', 'Kaupunki'], ['Huoneita', 'Huoneluku'], ['Asumismuoto', 'Asumismuoto']]) {
+    const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = lbl;
+    b.setAttribute('aria-pressed', state.split === key);
+    b.onclick = () => { state.split = key; update(); };
+    sc.appendChild(b);
+  }
+  const grid = document.getElementById('multiples'); grid.innerHTML = '';
+  const dimDef = DIMS.find(d => d.key === state.split);
+  for (const v of ORDER[state.split].filter(v => state[state.split].has(v))) {
+    const full = series(selectedUrls({ [state.split]: new Set([v]) }));
+    const pts = inRange(full);
+    const valid = pts.filter(p => p.v !== null);
+    const div = document.createElement('div'); div.className = 'mini';
+    const last = valid[valid.length - 1], first = valid[0];
+    div.innerHTML = `<div class="t">${dimDef.fmt ? dimDef.fmt(v) : v}</div><div class="v">${last ? fmtN(last.v) : '–'}</div>` +
+      `<div class="d">${last && first && first !== last ? fmtSigned(last.v - first.v) + fmtPct(last.v - first.v, first.v) + ' jakson alusta' : (first ? 'alkaen ' + fmtD(first.date) : '')}</div>`;
+    const c = document.createElement('div'); c.className = 'chart'; div.appendChild(c);
+    grid.appendChild(div);
+    drawLine(c, pts, { compact: true, height: 70, label: `${v}: ilmoitusten määrä` });
+  }
+}
+
+function renderTable() {
+  const tila = [...state.Tila][0], forms = ORDER.Asumismuoto.filter(a => state.Asumismuoto.has(a));
+  document.getElementById('tableSub').textContent = `${tila}, ${forms.join(' + ').toLowerCase()}. Pienellä muutos edellisestä mittauksesta. Ei riipu kaupunki- ja huonelukuvalinnoista.`;
+  const lastDate = dates[dates.length - 1], prevDate = dates[dates.length - 2];
+  const cell = (urls) => {
+    const nowRow = byDate.get(lastDate), prevRow = prevDate ? byDate.get(prevDate) : new Map();
+    if (!urls.length || urls.some(u => !nowRow.has(u))) return '<td>–</td>';
+    const now = urls.reduce((s, u) => s + nowRow.get(u), 0);
+    const nPrev = urls.filter(u => prevRow.has(u)).length;
+    const chg = nPrev === urls.length ? fmtSigned(now - urls.reduce((s, u) => s + prevRow.get(u), 0)) : nPrev === 0 ? 'uusi' : 'ei vert.';
+    return `<td>${fmtN(now)}<span class="chg">${chg}</span></td>`;
+  };
+  const urlsFor = (city, rooms) => mapping.filter(m => (!city || m.Kaupunki === city) && (!rooms || m.Huoneita === rooms) && m.Tila === tila && state.Asumismuoto.has(m.Asumismuoto)).map(m => m.URL);
+  let html = '<thead><tr><th>Kaupunki</th>' + ORDER.Huoneita.map(r => `<th>${r} h</th>`).join('') + '<th>Yhteensä</th></tr></thead><tbody>';
+  for (const city of ORDER.Kaupunki) html += `<tr><td>${city}</td>` + ORDER.Huoneita.map(r => cell(urlsFor(city, r))).join('') + cell(urlsFor(city, null)) + '</tr>';
+  html += '<tr class="total"><td>Kaikki</td>' + ORDER.Huoneita.map(r => cell(urlsFor(null, r))).join('') + cell(urlsFor(null, null)) + '</tr></tbody>';
+  document.getElementById('latestTable').innerHTML = html;
+}
+
+function update() {
+  renderFilters();
+  const full = series(selectedUrls());
+  renderKpis(full);
+  renderMain(full);
+  renderMultiples();
+  renderTable();
+}
+
+async function init() {
+  try {
+    const [mapText, dataText] = await Promise.all([
+      fetch('URL_Mapping.csv', { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('URL_Mapping.csv ' + r.status); return r.text(); }),
+      fetch('data.csv', { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('data.csv ' + r.status); return r.text(); }),
+    ]);
+    mapping = parseCSV(mapText);
+    for (const r of parseCSV(dataText)) {
+      if (!byDate.has(r.date)) byDate.set(r.date, new Map());
+      byDate.get(r.date).set(r.url, +r.vacancy);
+    }
+    dates = [...byDate.keys()].sort();
+    document.getElementById('updated').textContent = `Viimeisin mittaus ${fmtD(dates[dates.length - 1])} · ${dates.length} mittauskertaa ${fmtD(dates[0])} alkaen`;
+    document.getElementById('trendToggle').onchange = e => { state.trend = e.target.checked; renderMain(series(selectedUrls())); };
+    update();
+    let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(update, 150); });
+  } catch (e) {
+    document.getElementById('updated').innerHTML = `<span class="err">Tietojen lataus epäonnistui: ${e.message}</span>`;
+  }
+}
+init();
+})();
+</script>
+</body>
+</html>
