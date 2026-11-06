@@ -6,65 +6,101 @@
 <title>Vuokraovi tilastot</title>
 <style>
 :root {
-  --bg: #F8E6DA;          /* Vaalea keramiikka */
+  --bg: #94A898;          /* Jäkälä */
+  --on-bg: #000000;
+  --on-bg-2: #15241a;
   --card: #FFFFFF;
+  --filter-bg: #F8E6DA;   /* Vaalea keramiikka */
+  --filter-border: #e8cdbb;
   --ink: #000000;
   --ink-2: #3d4a41;
   --ink-3: #6b766e;
   --title: #004722;       /* Havu */
   --line: #004722;        /* Havu */
   --accent: #FFA1E7;      /* Horsma */
-  --soft: #94A898;        /* Jäkälä */
-  --soft-bg: #eef1ee;
+  --shade: rgba(255, 161, 231, .16);  /* Horsma, translucent */
+  --shade-edge: #FFA1E7;
   --grid: #e6e2dc;
   --chip-on-bg: #004722;
   --chip-on-ink: #FFFFFF;
   --chip-border: #94A898;
+  --chip-bg: #FFFFFF;
   --trend: #000000;
   --note-bg: #FCD4F4;     /* Vaalea horsma */
+  --y0: #004722; --y1: #436F4C; --y2: #94A898; --y3: #c4cfc6;  /* years: newest darkest */
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1712; --card: #16231b; --ink: #e9efea; --ink-2: #c3cec6; --ink-3: #8e9b92;
-    --title: #94A898; --line: #94A898; --accent: #FFA1E7; --soft: #436F4C; --soft-bg: #1d2e24;
-    --grid: #26372d; --chip-on-bg: #94A898; --chip-on-ink: #0e1712; --chip-border: #436F4C;
+    --bg: #0e1712; --on-bg: #e9efea; --on-bg-2: #c3cec6; --card: #16231b; --filter-bg: #213528; --filter-border: #2f4636;
+    --ink: #e9efea; --ink-2: #c3cec6; --ink-3: #8e9b92;
+    --title: #94A898; --line: #b7c7ba; --accent: #FFA1E7; --shade: rgba(255, 161, 231, .10); --shade-edge: #c77fb6;
+    --grid: #26372d; --chip-on-bg: #94A898; --chip-on-ink: #0e1712; --chip-border: #436F4C; --chip-bg: #16231b;
     --trend: #e9efea; --note-bg: #3a2635;
+    --y0: #d3ded5; --y1: #94A898; --y2: #5f7d67; --y3: #3c5444;
   }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.4; }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
 header h1 { color: var(--title); font-size: 30px; font-weight: 400; margin: 0 0 4px; }
-header p { margin: 0; color: var(--ink-2); }
+header p { margin: 0; color: var(--on-bg-2); }
 .card { background: var(--card); border-radius: 16px; padding: 18px 20px; margin-top: 16px; }
 .card h2 { color: var(--title); font-size: 19px; font-weight: 400; margin: 0 0 4px; }
 .card .sub { color: var(--ink-3); font-size: 13px; margin: 0 0 10px; }
-.filters { display: flex; flex-wrap: wrap; gap: 14px 28px; }
+.head-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px 16px; }
+
+/* filters */
+.filtercard { background: var(--filter-bg); border: 1px solid var(--filter-border); border-radius: 16px; padding: 16px 20px; margin-top: 16px; }
+.filters { display: flex; flex-wrap: wrap; gap: 14px 30px; align-items: flex-start; }
+.fhead { display: none; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+.fhead .txt { min-width: 0; }
 .fgroup .flabel { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { font: inherit; font-size: 14px; border: 1px solid var(--chip-border); background: transparent; color: var(--ink); border-radius: 999px; padding: 5px 12px; cursor: pointer; min-height: 32px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.opt { display: flex; flex-direction: column; align-items: center; }
+.opt .since { font-size: 11px; color: var(--ink-3); margin-top: 3px; white-space: nowrap; }
+.chip { font: inherit; font-size: 14px; border: 1px solid var(--chip-border); background: var(--chip-bg); color: var(--ink); border-radius: 999px; padding: 5px 12px; cursor: pointer; min-height: 32px; white-space: nowrap; }
 .chip[aria-pressed="true"] { background: var(--chip-on-bg); color: var(--chip-on-ink); border-color: var(--chip-on-bg); }
-.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.chip:focus-visible, .monthin:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pks { display: flex; flex-direction: column; align-items: stretch; }
+.pks .chips { flex-wrap: nowrap; }
+.brace { display: flex; align-items: flex-start; height: 12px; margin: 3px 10px 3px; color: var(--chip-border); }
+.brace svg { flex: none; display: block; }
+.brace .bl { flex: 1; border-top: 1.5px solid currentColor; margin-top: 5.25px; }
+.pks .pkschip { align-self: center; }
+.citygroup { display: flex; gap: 6px; align-items: flex-start; }
+.months { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
+.monthin { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--chip-border); border-radius: 8px; background: var(--chip-bg); color: var(--ink); }
+
+/* floating compact filter bar */
+.floatbar { position: fixed; left: 0; right: 0; top: 0; z-index: 20; transform: translateY(-110%); visibility: hidden; transition: transform .18s ease, visibility 0s linear .18s; pointer-events: none; }
+.floatbar.show { transform: none; visibility: visible; transition: transform .18s ease; pointer-events: auto; }
+.floatbar .inner { max-width: 1180px; margin: 0 auto; padding: 8px 16px 0; }
+.floatbar .bar { background: var(--filter-bg); border: 1px solid var(--filter-border); border-radius: 0 0 14px 14px; box-shadow: 0 6px 18px rgba(0,0,0,.14); padding: 8px 14px; }
+.floatbar .summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
+.floatbar .summary .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.floatbar .panel { display: none; padding: 12px 0 6px; max-height: 70vh; overflow-y: auto; }
+.floatbar.open .panel { display: block; }
+
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 .kpi { background: var(--card); border-radius: 16px; padding: 16px 18px; }
 .kpi .k { font-size: 13px; color: var(--ink-3); }
 .kpi .v { font-size: 30px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .kpi .d { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .note { background: var(--note-bg); color: var(--ink); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin: 6px 0 10px; }
-.legend { display: flex; gap: 18px; font-size: 13px; color: var(--ink-2); align-items: center; margin-bottom: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); align-items: center; margin-bottom: 4px; }
 .legend .sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--line); vertical-align: middle; margin-right: 6px; }
 .legend .sw.trend { border-top: 2px dashed var(--trend); }
+.legend .sw.shade { height: 12px; border: 0; border-left: 2px solid var(--shade-edge); background: var(--shade); width: 18px; }
 .legend label { cursor: pointer; }
 .chart { position: relative; }
 .chart svg { display: block; width: 100%; overflow: visible; }
 .tip { position: absolute; pointer-events: none; background: var(--card); border: 1px solid var(--grid); box-shadow: 0 4px 14px rgba(0,0,0,.12); border-radius: 8px; padding: 8px 10px; font-size: 13px; white-space: nowrap; display: none; z-index: 2; }
 .tip b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.multi-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin-top: 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-top: 8px; }
 .mini { border: 1px solid var(--grid); border-radius: 12px; padding: 10px 12px; }
 .mini .t { font-size: 14px; color: var(--ink-2); }
 .mini .v { font-size: 20px; font-variant-numeric: tabular-nums; }
-.mini .d { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.mini .d { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; min-height: 17px; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--grid); }
 th:first-child, td:first-child { text-align: left; }
@@ -72,36 +108,43 @@ th { font-weight: 400; color: var(--ink-3); font-size: 13px; }
 td .chg { display: block; font-size: 11px; color: var(--ink-3); }
 tr.total td { font-weight: 700; }
 .tablewrap { overflow-x: auto; }
-footer { color: var(--ink-3); font-size: 12px; margin-top: 20px; }
+footer { color: var(--on-bg-2); font-size: 12px; margin-top: 20px; }
 footer a { color: inherit; }
 .axis text { fill: var(--ink-3); font-size: 11px; }
 .err { color: #a00; }
-@media (max-width: 760px) { th, td { padding: 6px 5px; } .card { padding: 16px 14px; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } header h1 { font-size: 24px; } .kpi .v { font-size: 24px; } }
+@media (max-width: 760px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  header h1 { font-size: 24px; } .kpi .v { font-size: 24px; }
+  th, td { padding: 6px 5px; } .card { padding: 16px 14px; } .filtercard { padding: 12px 14px; }
+  .filtercard .fhead { display: flex; }
+  .filtercard:not(.open) #filtersMain { display: none; }
+  .filtercard.open .fhead { margin-bottom: 12px; }
+}
 </style>
 </head>
 <body>
+<div class="floatbar" id="floatbar" aria-hidden="true">
+  <div class="inner"><div class="bar">
+    <div class="summary"><span class="txt" id="summaryTxt"></span><button class="chip" type="button" id="floatToggle" aria-expanded="false">Muuta ▾</button></div>
+    <div class="panel"><div class="filters" id="filtersFloat"></div></div>
+  </div></div>
+</div>
+
 <div class="wrap">
   <header>
     <h1>Asuntoja listattuna Vuokraovessa</h1>
     <p id="updated">Ladataan…</p>
   </header>
 
-  <section class="card" aria-label="Suodattimet">
-    <div class="filters" id="filters"></div>
+  <section class="filtercard" id="filterCard" aria-label="Suodattimet">
+    <div class="fhead"><span class="txt" id="summaryTxtMain"></span><button class="chip" type="button" id="filterToggle" aria-expanded="false" aria-controls="filtersMain">Näytä suodattimet</button></div>
+    <div class="filters" id="filtersMain"></div>
   </section>
 
   <section class="kpis" id="kpis" aria-label="Tunnusluvut"></section>
 
   <section class="card">
-    <h2>Ilmoituksia valinnalla</h2>
-    <p class="sub">Viikoittainen ilmoitusmäärä. Piste puuttuu, jos jokin valituista hauista puuttuu sinä päivänä.</p>
-    <div id="mainNote"></div>
-    <div class="legend"><span><span class="sw"></span>Ilmoituksia</span><label><input type="checkbox" id="trendToggle" checked> <span class="sw trend"></span>Lineaarinen trendi</label></div>
-    <div class="chart" id="mainChart"></div>
-  </section>
-
-  <section class="card">
-    <div class="multi-head">
+    <div class="head-row">
       <div>
         <h2>Jaottelu</h2>
         <p class="sub">Jokaisella kuvalla on oma pystyakselinsa, joten kuvat näyttävät kehityksen suunnan, eivät keskinäistä kokoa.</p>
@@ -112,14 +155,27 @@ footer a { color: inherit; }
   </section>
 
   <section class="card">
-    <h2>Viimeisin viikko kaupungeittain</h2>
+    <div class="head-row">
+      <div>
+        <h2>Ilmoituksia valinnalla yhteensä</h2>
+        <p class="sub" id="mainSub"></p>
+      </div>
+      <div class="chips" id="modeChips"></div>
+    </div>
+    <div id="mainNote"></div>
+    <div class="legend" id="mainLegend"></div>
+    <div class="chart" id="mainChart"></div>
+  </section>
+
+  <section class="card">
+    <h2>Viimeisin data kaupungeittain</h2>
     <p class="sub" id="tableSub"></p>
     <div class="tablewrap"><table id="latestTable"></table></div>
   </section>
 
   <footer>
     <p>Lähde: <a href="https://www.vuokraovi.com">vuokraovi.com</a>, tallennetut haut (kerrostalot). Tiedot päivittyvät automaattisesti sunnuntaisin.
-    Turku ja Tampere ovat mukana 1.11.2026 alkaen. Huom: Heti vapaa -ilmoitukset sisältyvät Kaikki-lukuun, joten Tila-valinta on aina yksi kerrallaan.</p>
+    Heti vapaa -ilmoitukset sisältyvät Kaikki-lukuun, joten Tila-valinta on aina yksi kerrallaan. Vaaleanpunainen tausta kuvissa merkitsee jaksoa, jolta osa valinnan datasta puuttuu.</p>
   </footer>
 </div>
 
@@ -131,21 +187,24 @@ const DIMS = [
   { key: 'Tila', label: 'Tila', multi: false },
   { key: 'Asumismuoto', label: 'Asumismuoto', multi: true },
 ];
-const RANGES = [ ['3 kk', 91], ['6 kk', 182], ['12 kk', 365], ['Kaikki', 0] ];
+const PKS = ['Helsinki', 'Espoo', 'Vantaa'];
+const PRESETS = [ ['3 kk', 91], ['6 kk', 182], ['12 kk', 365], ['Kaikki', 0] ];
 const ORDER = { Kaupunki: ['Helsinki','Espoo','Vantaa','Turku','Tampere'], Huoneita: ['1','2','3','4+'], Tila: ['Kaikki','Heti vapaa'], Asumismuoto: ['Vuokra','Asumisoikeus'] };
+const MONTHS = ['tammi','helmi','maalis','huhti','touko','kesä','heinä','elo','syys','loka','marras','joulu'];
 const nf = new Intl.NumberFormat('fi-FI');
 const fmtN = v => nf.format(Math.round(v));
 const fmtD = iso => { const [y,m,d] = iso.split('-'); return `${+d}.${+m}.${y}`; };
 const fmtSigned = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + nf.format(Math.abs(Math.round(v)));
-const fmtPct = (v, base) => base ? ` (${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v / base * 100).toFixed(1).replace('.', ',')} %)` : '';
+const fmtPct = (v, base) => base ? `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v / base * 100).toFixed(1).replace('.', ',')} %` : '';
+const isoAdd = (iso, days) => new Date(new Date(iso + 'T00:00:00Z').getTime() + days * 864e5).toISOString().slice(0, 10);
+const ts = iso => new Date(iso + 'T00:00:00Z').getTime();
+const endOfMonth = ym => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); };
 
 let mapping = [], byDate = new Map(), dates = [];
 const state = {
-  Kaupunki: new Set(['Helsinki','Espoo','Vantaa']),
-  Huoneita: new Set(['1','2','3','4+']),
-  Tila: new Set(['Kaikki']),
-  Asumismuoto: new Set(['Vuokra']),
-  range: 0, split: 'Kaupunki', trend: true,
+  Kaupunki: new Set(PKS), Huoneita: new Set(ORDER.Huoneita), Tila: new Set(['Kaikki']), Asumismuoto: new Set(['Vuokra']),
+  preset: 0, fromM: null, toM: null,   // preset days (0 = all) or 'custom' with fromM/toM 'YYYY-MM'
+  split: 'Kaupunki', trend: true, mode: 'time', floatOpen: false,
 };
 
 function parseCSV(text) {
@@ -153,230 +212,332 @@ function parseCSV(text) {
   const head = lines.shift().split(',');
   return lines.map(l => { const c = l.split(','); return Object.fromEntries(head.map((h, i) => [h, c[i]])); });
 }
-
 function selectedUrls(overrides = {}) {
   return mapping.filter(m => DIMS.every(d => (overrides[d.key] || state[d.key]).has(m[d.key]))).map(m => m.URL);
 }
-
-// Sum of the given URLs per date; null where any URL is missing that date.
+// Sum of the given URLs per date; null where any of them is missing on that date.
 function series(urls) {
-  if (!urls.length) return [];
+  if (!urls.length) return dates.map(date => ({ date, v: null }));
   return dates.map(date => {
-    const row = byDate.get(date);
-    let sum = 0;
+    const row = byDate.get(date); let sum = 0;
     for (const u of urls) { const v = row.get(u); if (v === undefined) return { date, v: null }; sum += v; }
     return { date, v: sum };
   });
 }
-
-function inRange(pts) {
-  if (!state.range || !dates.length) return pts;
-  const last = new Date(dates[dates.length - 1]);
-  const from = new Date(last - state.range * 864e5).toISOString().slice(0, 10);
-  return pts.filter(p => p.date >= from);
+const firstValid = pts => pts.find(p => p.v !== null) || null;
+function bounds() {
+  const first = dates[0], last = dates[dates.length - 1];
+  if (state.preset === 'custom') {
+    let from = state.fromM ? state.fromM + '-01' : first, to = state.toM ? endOfMonth(state.toM) : last;
+    if (from < first) from = first; if (to > last) to = last; if (to < from) to = from;
+    return [from, to];
+  }
+  return [state.preset ? isoAdd(last, -state.preset) : first, last];
 }
-
-function valueAtOrBefore(pts, iso) {
-  for (let i = pts.length - 1; i >= 0; i--) if (pts[i].date <= iso && pts[i].v !== null) return pts[i];
-  return null;
+const inBounds = (pts, [a, b]) => pts.filter(p => p.date >= a && p.date <= b);
+// Earliest date from which the selection with dim=value has complete data (other dims as currently selected).
+function sinceFor(dim, values) { const f = firstValid(series(selectedUrls({ [dim]: new Set(values) }))); return f ? f.date : null; }
+// Start date to flag for an option: only when it starts later than the earliest-starting option of the same dimension,
+// so the label points at the option that actually causes the gap (e.g. Turku), not at every option it affects.
+function lateStart(dim, v) {
+  const all = ORDER[dim].map(x => sinceFor(dim, [x])).filter(Boolean);
+  const base = all.length ? all.sort()[0] : dates[0], s = sinceFor(dim, [v]);
+  return s && s > base ? s : null;
 }
 
 // ---------- filters ----------
-function renderFilters() {
-  const el = document.getElementById('filters');
+function chip(label, pressed, onclick, extraClass = '') {
+  const b = document.createElement('button'); b.className = 'chip ' + extraClass; b.type = 'button';
+  b.textContent = label; b.setAttribute('aria-pressed', pressed); b.onclick = onclick; return b;
+}
+function optWrap(btn, since) {
+  const o = document.createElement('div'); o.className = 'opt'; o.appendChild(btn);
+  if (since) { const s = document.createElement('span'); s.className = 'since'; s.textContent = 'data alkaen ' + fmtD(since); o.appendChild(s); }
+  return o;
+}
+function toggle(dim, v) {
+  const d = DIMS.find(x => x.key === dim), s = state[dim];
+  if (!d.multi) { s.clear(); s.add(v); }
+  else if (s.has(v)) { if (s.size > 1) s.delete(v); }
+  else s.add(v);
+  update();
+}
+function braceEl() {
+  const b = document.createElement('div'); b.className = 'brace'; b.setAttribute('aria-hidden', 'true');
+  b.innerHTML = '<svg width="8" height="12"><path d="M1 0 Q1 6 8 6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="bl"></span>' +
+    '<svg width="16" height="12"><path d="M0 6 Q8 6 8 12 Q8 6 16 6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="bl"></span>' +
+    '<svg width="8" height="12"><path d="M0 6 Q7 6 7 0" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+  return b;
+}
+function renderFilters(el) {
   el.innerHTML = '';
   for (const d of DIMS) {
     const g = document.createElement('div'); g.className = 'fgroup';
     g.innerHTML = `<div class="flabel">${d.label}</div>`;
-    const chips = document.createElement('div'); chips.className = 'chips';
-    for (const v of ORDER[d.key]) {
-      const b = document.createElement('button'); b.className = 'chip'; b.type = 'button';
-      b.textContent = d.fmt ? d.fmt(v) : v;
-      b.setAttribute('aria-pressed', state[d.key].has(v));
-      b.onclick = () => {
-        const s = state[d.key];
-        if (!d.multi) { s.clear(); s.add(v); }
-        else if (s.has(v)) { if (s.size > 1) s.delete(v); }
-        else s.add(v);
+    if (d.key === 'Kaupunki') {
+      const wrap = document.createElement('div'); wrap.className = 'citygroup';
+      const pks = document.createElement('div'); pks.className = 'pks';
+      const row = document.createElement('div'); row.className = 'chips';
+      for (const v of PKS) row.appendChild(optWrap(chip(v, state.Kaupunki.has(v), () => toggle('Kaupunki', v)), lateStart('Kaupunki', v)));
+      pks.appendChild(row); pks.appendChild(braceEl());
+      const allOn = PKS.every(v => state.Kaupunki.has(v));
+      pks.appendChild(chip('Pääkaupunkiseutu', allOn, () => {
+        if (allOn) { const rest = [...state.Kaupunki].filter(v => !PKS.includes(v)); if (rest.length) PKS.forEach(v => state.Kaupunki.delete(v)); }
+        else PKS.forEach(v => state.Kaupunki.add(v));
         update();
-      };
-      chips.appendChild(b);
+      }, 'pkschip'));
+      wrap.appendChild(pks);
+      const rest = document.createElement('div'); rest.className = 'chips';
+      for (const v of ORDER.Kaupunki.filter(v => !PKS.includes(v))) rest.appendChild(optWrap(chip(v, state.Kaupunki.has(v), () => toggle('Kaupunki', v)), lateStart('Kaupunki', v)));
+      wrap.appendChild(rest); g.appendChild(wrap);
+    } else {
+      const chips = document.createElement('div'); chips.className = 'chips';
+      for (const v of ORDER[d.key]) chips.appendChild(optWrap(chip(d.fmt ? d.fmt(v) : v, state[d.key].has(v), () => toggle(d.key, v)), lateStart(d.key, v)));
+      g.appendChild(chips);
     }
-    g.appendChild(chips); el.appendChild(g);
+    el.appendChild(g);
   }
+  // time range
   const g = document.createElement('div'); g.className = 'fgroup';
   g.innerHTML = '<div class="flabel">Aikaväli</div>';
   const chips = document.createElement('div'); chips.className = 'chips';
-  for (const [lbl, days] of RANGES) {
-    const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = lbl;
-    b.setAttribute('aria-pressed', state.range === days);
-    b.onclick = () => { state.range = days; update(); };
-    chips.appendChild(b);
-  }
-  g.appendChild(chips); el.appendChild(g);
+  for (const [lbl, days] of PRESETS) chips.appendChild(chip(lbl, state.preset === days, () => { state.preset = days; update(); }));
+  g.appendChild(chips);
+  const [a, b] = bounds();
+  const minM = dates[0].slice(0, 7), maxM = dates[dates.length - 1].slice(0, 7);
+  const months = document.createElement('div'); months.className = 'months';
+  months.innerHTML = `<label>Alkaen <input class="monthin" type="month" min="${minM}" max="${maxM}" value="${a.slice(0, 7)}" data-k="fromM"></label>` +
+    `<label>päättyen <input class="monthin" type="month" min="${minM}" max="${maxM}" value="${b.slice(0, 7)}" data-k="toM"></label>`;
+  months.querySelectorAll('input').forEach(inp => inp.onchange = () => {
+    const [a2, b2] = bounds();
+    state.fromM = state.fromM || a2.slice(0, 7); state.toM = state.toM || b2.slice(0, 7);
+    if (inp.value) state[inp.dataset.k] = inp.value;
+    state.preset = 'custom'; update();
+  });
+  g.appendChild(months);
+  el.appendChild(g);
+}
+function summaryText() {
+  const c = state.Kaupunki, others = ORDER.Kaupunki.filter(v => !PKS.includes(v) && c.has(v));
+  const city = PKS.every(v => c.has(v)) ? ['Pääkaupunkiseutu', ...others].join(' + ') : ORDER.Kaupunki.filter(v => c.has(v)).join(', ');
+  const rooms = state.Huoneita.size === 4 ? 'kaikki huoneluvut' : ORDER.Huoneita.filter(v => state.Huoneita.has(v)).map(v => v + ' h').join(', ');
+  const [a, b] = bounds();
+  return `${city} · ${rooms} · ${[...state.Tila][0]} · ${ORDER.Asumismuoto.filter(v => state.Asumismuoto.has(v)).join(' + ')} · ${fmtD(a)}–${fmtD(b)}`;
 }
 
-// ---------- line chart ----------
-function drawLine(container, pts, opts = {}) {
-  const W = container.clientWidth || 600;
-  const H = opts.height || (W < 500 ? 240 : 320);
-  const m = opts.compact ? { t: 6, r: 6, b: 4, l: 6 } : { t: 12, r: W < 500 ? 48 : 64, b: 28, l: W < 500 ? 44 : 56 };
-  const valid = pts.filter(p => p.v !== null);
-  container.innerHTML = '';
-  if (valid.length === 0) { container.innerHTML = '<p class="sub">Ei dataa valinnalla.</p>'; return; }
-  const x0 = new Date(pts[0].date).getTime(), x1 = new Date(pts[pts.length - 1].date).getTime();
-  const span = Math.max(x1 - x0, 1);
-  const vals = valid.map(p => p.v);
+// ---------- time chart ----------
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(W, H, label) {
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', label);
+  const add = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+  return [svg, add];
+}
+function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw || 1))); const f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+function yScale(vals, H, m) {
   let lo = Math.min(...vals), hi = Math.max(...vals);
   const pad = (hi - lo) * 0.12 || Math.max(hi * 0.05, 1);
   lo = Math.max(0, lo - pad); hi = hi + pad;
-  const X = t => m.l + (W - m.l - m.r) * (new Date(t).getTime() - x0) / span;
-  const Y = v => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo));
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H);
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', opts.label || 'Viivakaavio');
-  const add = (tag, attrs, parent = svg) => { const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
-
-  if (!opts.compact) {
-    const ax = add('g', { class: 'axis' });
-    const step = niceStep((hi - lo) / 5);
-    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
-      add('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: 'var(--grid)', 'stroke-width': 1 }, ax);
-      const t = add('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, ax); t.textContent = fmtN(v);
+  return [v => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo)), lo, hi];
+}
+function yAxis(add, Y, lo, hi, W, m) {
+  const ax = add('g', { class: 'axis' }); const step = niceStep((hi - lo) / 5);
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+    add('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: 'var(--grid)', 'stroke-width': 1 }, ax);
+    const t = add('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, ax); t.textContent = fmtN(v);
+  }
+  return ax;
+}
+function drawLine(container, pts, opts) {
+  const W = container.clientWidth || 600, compact = !!opts.compact;
+  const H = opts.height || (W < 500 ? 240 : 320);
+  const m = compact ? { t: 6, r: 6, b: 4, l: 6 } : { t: 12, r: W < 500 ? 48 : 64, b: 28, l: W < 500 ? 44 : 56 };
+  const [d0, d1] = opts.domain;
+  const x0 = ts(d0), span = Math.max(ts(d1) - x0, 1);
+  const X = iso => m.l + (W - m.l - m.r) * (ts(iso) - x0) / span;
+  const valid = pts.filter(p => p.v !== null);
+  container.innerHTML = '';
+  const [svg, add] = svgEl(W, H, opts.label || 'Viivakaavio');
+  // shaded period without complete data (from domain start to first complete point)
+  const fv = valid[0];
+  const shadeEnd = fv ? (pts.some(p => p.v === null && p.date < fv.date) ? fv.date : null) : (pts.length ? d1 : null);
+  if (shadeEnd) {
+    add('rect', { x: m.l, y: m.t, width: Math.max(0, X(shadeEnd) - m.l), height: H - m.t - m.b, fill: 'var(--shade)' });
+    if (fv) add('line', { x1: X(shadeEnd), x2: X(shadeEnd), y1: m.t, y2: H - m.b, stroke: 'var(--shade-edge)', 'stroke-width': compact ? 1.5 : 2 });
+    if (!compact && X(shadeEnd) - m.l > 150) {
+      const t = add('text', { x: m.l + 10, y: m.t + 18, fill: 'var(--ink-2)', 'font-size': 12 });
+      t.textContent = fv ? 'Osa valinnan datasta puuttuu' : 'Valinnalla ei dataa tällä aikavälillä';
     }
-    // month ticks: spacing adapts to width, year shown on the first label and when it changes
-    const first = new Date(x0); const cur = new Date(first.getFullYear(), first.getMonth() + 1, 1);
+  }
+  if (!valid.length) {
+    if (compact) { const t = add('text', { x: W / 2, y: H / 2 + 4, 'text-anchor': 'middle', fill: 'var(--ink-3)', 'font-size': 12 }); t.textContent = 'ei dataa aikavälillä'; }
+    container.appendChild(svg); return;
+  }
+  const [Y, lo, hi] = yScale(valid.map(p => p.v), H, m);
+  if (!compact) {
+    const ax = yAxis(add, Y, lo, hi, W, m);
     const totalMonths = Math.max(1, Math.round(span / (30.4 * 864e5)));
     const fit = Math.max(1, Math.floor((W - m.l - m.r) / 64));
     const every = [1, 2, 3, 4, 6, 12].find(n => totalMonths / n <= fit) || 12;
-    let i = 0, lastYear = null;
-    while (cur.getTime() <= x1) {
+    const f = new Date(x0); let y = f.getUTCFullYear(), mo = f.getUTCMonth() + 1, i = 0, lastYear = null;
+    if (mo > 11) { mo = 0; y++; }
+    while (true) {
+      const iso = `${y}-${String(mo + 1).padStart(2, '0')}-01`;
+      if (iso > d1) break;
       if (i % every === 0) {
-        const iso = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-01`;
         const t = add('text', { x: X(iso), y: H - 8, 'text-anchor': 'middle' }, ax);
-        const showYear = lastYear !== cur.getFullYear();
-        t.textContent = cur.toLocaleDateString('fi-FI', { month: 'short' }).replace('.', '') + (showYear ? ' ' + cur.getFullYear() : '');
-        lastYear = cur.getFullYear();
+        t.textContent = MONTHS[mo] + (lastYear !== y ? ' ' + y : ''); lastYear = y;
       }
-      cur.setMonth(cur.getMonth() + 1); i++;
+      mo++; if (mo > 11) { mo = 0; y++; } i++;
     }
   }
-
-  // line segments (gaps where null)
   let d = '', pen = false;
-  for (const p of pts) {
-    if (p.v === null) { pen = false; continue; }
-    d += (pen ? 'L' : 'M') + X(p.date).toFixed(1) + ',' + Y(p.v).toFixed(1); pen = true;
-  }
-  add('path', { d, fill: 'none', stroke: 'var(--line)', 'stroke-width': opts.compact ? 1.75 : 2.25, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
-
+  for (const p of pts) { if (p.v === null) { pen = false; continue; } d += (pen ? 'L' : 'M') + X(p.date).toFixed(1) + ',' + Y(p.v).toFixed(1); pen = true; }
+  if (valid.length === 1) add('circle', { cx: X(valid[0].date), cy: Y(valid[0].v), r: 3, fill: 'var(--line)' });
+  add('path', { d, fill: 'none', stroke: 'var(--line)', 'stroke-width': compact ? 1.75 : 2.25, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
   if (opts.trend && valid.length >= 3) {
-    const xs = valid.map(p => new Date(p.date).getTime()), ys = vals;
-    const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+    const xs = valid.map(p => ts(p.date)), ys = valid.map(p => p.v), n = xs.length;
+    const mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
     let sxy = 0, sxx = 0; for (let k = 0; k < n; k++) { sxy += (xs[k] - mx) * (ys[k] - my); sxx += (xs[k] - mx) ** 2; }
     const b = sxx ? sxy / sxx : 0, a = my - b * mx;
-    const tA = xs[0], tB = xs[n - 1];
-    const iso = t => new Date(t).toISOString().slice(0, 10);
-    add('line', { x1: X(iso(tA)), y1: Y(a + b * tA), x2: X(iso(tB)), y2: Y(a + b * tB), stroke: 'var(--trend)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4', opacity: .7 });
+    add('line', { x1: X(valid[0].date), y1: Y(a + b * xs[0]), x2: X(valid[n - 1].date), y2: Y(a + b * xs[n - 1]), stroke: 'var(--trend)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4', opacity: .7 });
   }
-
-  // last point marker + direct label
   const last = valid[valid.length - 1];
-  add('circle', { cx: X(last.date), cy: Y(last.v), r: opts.compact ? 3.5 : 5, fill: 'var(--accent)', stroke: 'var(--line)', 'stroke-width': 2 });
-  if (!opts.compact) {
-    const t = add('text', { x: X(last.date) + 10, y: Y(last.v) + 4, fill: 'var(--ink)', 'font-size': 13 }); t.textContent = fmtN(last.v);
-  }
-
-  // hover layer
-  if (!opts.compact) {
-    const cross = add('line', { y1: m.t, y2: H - m.b, stroke: 'var(--ink-3)', 'stroke-width': 1, opacity: 0 });
-    const dot = add('circle', { r: 5, fill: 'var(--card)', stroke: 'var(--line)', 'stroke-width': 2, opacity: 0 });
-    const tip = document.createElement('div'); tip.className = 'tip'; container.appendChild(tip);
-    const hit = add('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' });
-    const move = ev => {
-      const r = svg.getBoundingClientRect();
-      const px = (ev.clientX - r.left) * (W / r.width);
-      let best = null, bd = Infinity;
-      for (const p of valid) { const dd = Math.abs(X(p.date) - px); if (dd < bd) { bd = dd; best = p; } }
-      if (!best) return;
-      const idx = valid.indexOf(best), prev = valid[idx - 1];
-      cross.setAttribute('x1', X(best.date)); cross.setAttribute('x2', X(best.date)); cross.setAttribute('opacity', .5);
-      dot.setAttribute('cx', X(best.date)); dot.setAttribute('cy', Y(best.v)); dot.setAttribute('opacity', 1);
-      tip.innerHTML = `${fmtD(best.date)}<br><b>${fmtN(best.v)}</b> ilmoitusta` + (prev ? `<br><span style="color:var(--ink-3)">${fmtSigned(best.v - prev.v)} vs. ${fmtD(prev.date)}</span>` : '');
-      tip.style.display = 'block';
-      const sx = r.width / W, left = X(best.date) * sx;
-      tip.style.left = Math.min(left + 12, r.width - tip.offsetWidth - 4) + 'px';
-      tip.style.top = Math.max(0, Y(best.v) * sx - tip.offsetHeight - 12) + 'px';
-    };
-    hit.addEventListener('pointermove', move);
-    hit.addEventListener('pointerdown', move);
-    hit.addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); });
-  }
-  container.insertBefore(svg, container.firstChild);
+  add('circle', { cx: X(last.date), cy: Y(last.v), r: compact ? 3.5 : 5, fill: 'var(--accent)', stroke: 'var(--line)', 'stroke-width': 2 });
+  if (!compact) { const t = add('text', { x: X(last.date) + 10, y: Y(last.v) + 4, fill: 'var(--ink)', 'font-size': 13 }); t.textContent = fmtN(last.v); }
+  container.appendChild(svg);
+  if (!compact) hover(container, svg, add, W, H, m, px => {
+    let best = null, bd = Infinity;
+    for (const p of valid) { const dd = Math.abs(X(p.date) - px); if (dd < bd) { bd = dd; best = p; } }
+    const prev = valid[valid.indexOf(best) - 1];
+    return { x: X(best.date), dots: [[X(best.date), Y(best.v), 'var(--line)']],
+      html: `${fmtD(best.date)}<br><b>${fmtN(best.v)}</b> ilmoitusta` + (prev ? `<br><span style="color:var(--ink-3)">${fmtSigned(best.v - prev.v)} vs. ${fmtD(prev.date)}</span>` : '') };
+  });
 }
-function niceStep(raw) {
-  const p = Math.pow(10, Math.floor(Math.log10(raw || 1)));
-  const f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
+function hover(container, svg, add, W, H, m, pick) {
+  const cross = add('line', { y1: m.t, y2: H - m.b, stroke: 'var(--ink-3)', 'stroke-width': 1, opacity: 0 });
+  const dotsG = add('g', {});
+  const tip = document.createElement('div'); tip.className = 'tip'; container.appendChild(tip);
+  const hit = add('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' });
+  const move = ev => {
+    const r = svg.getBoundingClientRect(), sx = r.width / W;
+    const res = pick((ev.clientX - r.left) / sx); if (!res) return;
+    cross.setAttribute('x1', res.x); cross.setAttribute('x2', res.x); cross.setAttribute('opacity', .5);
+    dotsG.innerHTML = ''; let topY = H;
+    for (const [cx, cy, col] of res.dots) { add('circle', { cx, cy, r: 5, fill: 'var(--card)', stroke: col, 'stroke-width': 2 }, dotsG); topY = Math.min(topY, cy); }
+    tip.innerHTML = res.html; tip.style.display = 'block';
+    tip.style.left = Math.max(0, Math.min(res.x * sx + 12, r.width - tip.offsetWidth - 4)) + 'px';
+    tip.style.top = Math.max(0, topY * sx - tip.offsetHeight - 12) + 'px';
+  };
+  hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('opacity', 0); dotsG.innerHTML = ''; });
+}
+
+// ---------- year-over-year (seasonal) chart ----------
+function drawSeasonal(container, full) {
+  const W = container.clientWidth || 600, H = W < 500 ? 260 : 340;
+  const m = { t: 12, r: W < 500 ? 52 : 70, b: 28, l: W < 500 ? 44 : 56 };
+  const valid = full.filter(p => p.v !== null);
+  container.innerHTML = '';
+  if (!valid.length) { container.innerHTML = '<p class="sub">Ei dataa valinnalla.</p>'; return; }
+  const doy = iso => (ts(iso) - Date.UTC(+iso.slice(0, 4), 0, 1)) / 864e5;
+  const X = d => m.l + (W - m.l - m.r) * d / 365;
+  const years = [...new Set(valid.map(p => p.date.slice(0, 4)))].sort();
+  const colorOf = y => ['var(--y0)', 'var(--y1)', 'var(--y2)', 'var(--y3)'][Math.min(years.length - 1 - years.indexOf(y), 3)];
+  const [svg, add] = svgEl(W, H, 'Ilmoitusten määrä vuosittain päällekkäin');
+  const [Y, lo, hi] = yScale(valid.map(p => p.v), H, m);
+  const ax = yAxis(add, Y, lo, hi, W, m);
+  const step = W < 500 ? 2 : 1;
+  for (let mo = 0; mo < 12; mo += step) {
+    const x = X(doy(`2025-${String(mo + 1).padStart(2, '0')}-01`));
+    add('line', { x1: x, x2: x, y1: m.t, y2: H - m.b, stroke: 'var(--grid)', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, ax);
+    const t = add('text', { x: x + 2, y: H - 8, 'text-anchor': 'start' }, ax); t.textContent = MONTHS[mo];
+  }
+  const lines = years.map(y => ({ y, pts: full.filter(p => p.date.startsWith(y)) }));
+  const legend = document.getElementById('mainLegend');
+  legend.innerHTML = years.slice().reverse().map(y => `<span><span class="sw" style="border-top-color:${colorOf(y)}"></span>${y}</span>`).join('');
+  for (const { y, pts } of lines) {
+    let d = '', pen = false;
+    for (const p of pts) { if (p.v === null) { pen = false; continue; } d += (pen ? 'L' : 'M') + X(doy(p.date)).toFixed(1) + ',' + Y(p.v).toFixed(1); pen = true; }
+    const isNewest = y === years[years.length - 1];
+    add('path', { d, fill: 'none', stroke: colorOf(y), 'stroke-width': isNewest ? 2.5 : 2, 'stroke-linejoin': 'round' });
+    const lv = pts.filter(p => p.v !== null).pop();
+    if (lv) { const t = add('text', { x: X(doy(lv.date)) + 8, y: Y(lv.v) + 4, fill: 'var(--ink)', 'font-size': 12 }); t.textContent = y; }
+  }
+  container.appendChild(svg);
+  hover(container, svg, add, W, H, m, px => {
+    const target = (px - m.l) / (W - m.l - m.r) * 365;
+    const rows = [], dots = [];
+    for (const { y, pts } of lines.slice().reverse()) {
+      let best = null, bd = Infinity;
+      for (const p of pts) { if (p.v === null) continue; const dd = Math.abs(doy(p.date) - target); if (dd < bd) { bd = dd; best = p; } }
+      if (best && bd <= 5) { rows.push(`<span style="color:var(--ink-3)">${fmtD(best.date)}</span> <b>${fmtN(best.v)}</b>`); dots.push([X(doy(best.date)), Y(best.v), colorOf(y)]); }
+    }
+    if (!rows.length) return null;
+    return { x: X(target), dots, html: rows.join('<br>') };
+  });
 }
 
 // ---------- sections ----------
-function renderKpis(full) {
-  const valid = full.filter(p => p.v !== null);
+function renderKpis(full, [, b]) {
+  const valid = full.filter(p => p.v !== null && p.date <= b);
   const el = document.getElementById('kpis');
   if (!valid.length) { el.innerHTML = ''; return; }
-  const last = valid[valid.length - 1];
-  const prev = valid[valid.length - 2];
-  const ago = days => valueAtOrBefore(valid, new Date(new Date(last.date) - days * 864e5).toISOString().slice(0, 10));
+  const last = valid[valid.length - 1], prev = valid[valid.length - 2];
+  const ago = days => { const t = isoAdd(last.date, -days); for (let i = valid.length - 1; i >= 0; i--) if (valid[i].date <= t) return valid[i]; return null; };
   const card = (k, v, d) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
-  const chg = (p, lbl) => p && p !== last ? card(lbl, fmtSigned(last.v - p.v), `${fmtPct(last.v - p.v, p.v).trim()} vs. ${fmtD(p.date)}`) : card(lbl, '–', 'ei vertailutietoa');
-  el.innerHTML = card('Ilmoituksia nyt', fmtN(last.v), fmtD(last.date)) + chg(prev, 'Muutos edellisestä') + chg(ago(28), 'Muutos 4 viikossa') + chg(ago(365), 'Muutos vuodessa');
+  const chg = (p, lbl) => p && p !== last ? card(lbl, fmtSigned(last.v - p.v), `${fmtPct(last.v - p.v, p.v)} vs. ${fmtD(p.date)}`) : card(lbl, '–', 'ei vertailudataa');
+  el.innerHTML = card('Ilmoituksia', fmtN(last.v), fmtD(last.date)) + chg(prev, 'Muutos edellisestä') + chg(ago(28), 'Muutos 4 viikossa') + chg(ago(365), 'Muutos vuodessa');
 }
-
-function renderMain(full) {
-  const pts = inRange(full);
-  const note = document.getElementById('mainNote');
-  const firstComplete = full.find(p => p.v !== null);
-  note.innerHTML = firstComplete && firstComplete.date > dates[0]
-    ? `<div class="note">Valinnan yhtenäinen historia alkaa ${fmtD(firstComplete.date)}. Osa valituista hauista on lisätty myöhemmin (esim. Turku ja Tampere 1.11.2026).</div>` : '';
-  drawLine(document.getElementById('mainChart'), pts, { trend: state.trend, label: 'Ilmoitusten määrä ajan yli' });
-}
-
-function renderMultiples() {
-  const sc = document.getElementById('splitChips');
-  sc.innerHTML = '';
-  for (const [key, lbl] of [['Kaupunki', 'Kaupunki'], ['Huoneita', 'Huoneluku'], ['Asumismuoto', 'Asumismuoto']]) {
-    const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = lbl;
-    b.setAttribute('aria-pressed', state.split === key);
-    b.onclick = () => { state.split = key; update(); };
-    sc.appendChild(b);
+function renderMain(full, bnd) {
+  const mc = document.getElementById('modeChips'); mc.innerHTML = '';
+  mc.appendChild(chip('Aikajana', state.mode === 'time', () => { state.mode = 'time'; update(); }));
+  mc.appendChild(chip('Vuodet päällekkäin', state.mode === 'yoy', () => { state.mode = 'yoy'; update(); }));
+  const note = document.getElementById('mainNote'), sub = document.getElementById('mainSub'), legend = document.getElementById('mainLegend');
+  const fv = firstValid(full);
+  // which selected options limit the shared history?
+  let limiting = [];
+  if (fv && fv.date > dates[0]) for (const d of DIMS) for (const v of state[d.key]) { const s = lateStart(d.key, v); if (s && s >= fv.date) limiting.push(d.fmt ? d.fmt(v) : v); }
+  note.innerHTML = fv && fv.date > dates[0]
+    ? `<div class="note">Valinnan yhtenäinen data alkaa ${fmtD(fv.date)}${limiting.length ? ', koska valinnalle ' + (limiting.length > 1 ? limiting.slice(0, -1).join(', ') + ' ja ' + limiting[limiting.length - 1] : limiting[0]) + ' on dataa vasta siitä alkaen' : ''}. Aiempi jakso on merkitty kuviin vaaleanpunaisella.</div>` : '';
+  if (state.mode === 'yoy') {
+    sub.textContent = 'Vuodet päällekkäin tammikuusta joulukuuhun kausivaihtelun vertailuun. Käyttää koko historiaa aikavälivalinnasta riippumatta.';
+    drawSeasonal(document.getElementById('mainChart'), full);
+  } else {
+    sub.textContent = 'Viikoittainen ilmoitusmäärä valitulla aikavälillä.';
+    legend.innerHTML = '<span><span class="sw"></span>Ilmoituksia</span><label><input type="checkbox" id="trendToggle"' + (state.trend ? ' checked' : '') + '> <span class="sw trend"></span>Lineaarinen trendi</label>' +
+      (inBounds(full, bnd).some(p => p.v === null) ? '<span><span class="sw shade"></span>Osa datasta puuttuu</span>' : '');
+    document.getElementById('trendToggle').onchange = e => { state.trend = e.target.checked; update(); };
+    drawLine(document.getElementById('mainChart'), inBounds(full, bnd), { domain: bnd, trend: state.trend, label: 'Ilmoitusten määrä ajan yli' });
   }
+}
+function renderMultiples(bnd) {
+  const sc = document.getElementById('splitChips'); sc.innerHTML = '';
+  for (const [key, lbl] of [['Kaupunki', 'Kaupunki'], ['Huoneita', 'Huoneluku'], ['Asumismuoto', 'Asumismuoto']])
+    sc.appendChild(chip(lbl, state.split === key, () => { state.split = key; update(); }));
   const grid = document.getElementById('multiples'); grid.innerHTML = '';
   const dimDef = DIMS.find(d => d.key === state.split);
   for (const v of ORDER[state.split].filter(v => state[state.split].has(v))) {
-    const full = series(selectedUrls({ [state.split]: new Set([v]) }));
-    const pts = inRange(full);
+    const pts = inBounds(series(selectedUrls({ [state.split]: new Set([v]) })), bnd);
     const valid = pts.filter(p => p.v !== null);
-    const div = document.createElement('div'); div.className = 'mini';
     const last = valid[valid.length - 1], first = valid[0];
+    const div = document.createElement('div'); div.className = 'mini';
+    const since = first && pts.some(p => p.v === null && p.date < first.date) ? `data alkaen ${fmtD(first.date)}` : '';
+    const chgTxt = last && first && first !== last ? fmtSigned(last.v - first.v) + ' (' + fmtPct(last.v - first.v, first.v) + ')' : '';
     div.innerHTML = `<div class="t">${dimDef.fmt ? dimDef.fmt(v) : v}</div><div class="v">${last ? fmtN(last.v) : '–'}</div>` +
-      `<div class="d">${last && first && first !== last ? fmtSigned(last.v - first.v) + fmtPct(last.v - first.v, first.v) + ' jakson alusta' : (first ? 'alkaen ' + fmtD(first.date) : '')}</div>`;
-    const c = document.createElement('div'); c.className = 'chart'; div.appendChild(c);
-    grid.appendChild(div);
-    drawLine(c, pts, { compact: true, height: 70, label: `${v}: ilmoitusten määrä` });
+      `<div class="d">${[chgTxt, since].filter(Boolean).join(' · ')}</div>`;
+    const c = document.createElement('div'); c.className = 'chart'; div.appendChild(c); grid.appendChild(div);
+    drawLine(c, pts, { compact: true, height: 70, domain: bnd, label: `${v}: ilmoitusten määrä` });
   }
 }
-
-function renderTable() {
+function renderTable([, b]) {
   const tila = [...state.Tila][0], forms = ORDER.Asumismuoto.filter(a => state.Asumismuoto.has(a));
-  document.getElementById('tableSub').textContent = `${tila}, ${forms.join(' + ').toLowerCase()}. Pienellä muutos edellisestä mittauksesta. Ei riipu kaupunki- ja huonelukuvalinnoista.`;
-  const lastDate = dates[dates.length - 1], prevDate = dates[dates.length - 2];
-  const cell = (urls) => {
-    const nowRow = byDate.get(lastDate), prevRow = prevDate ? byDate.get(prevDate) : new Map();
+  const upto = dates.filter(d => d <= b), lastDate = upto[upto.length - 1], prevDate = upto[upto.length - 2];
+  document.getElementById('tableSub').textContent = `${fmtD(lastDate)} · ${tila}, ${forms.join(' + ').toLowerCase()}. Pienellä muutos edellisestä datahausta. Ei riipu kaupunki- ja huonelukuvalinnoista.`;
+  const nowRow = byDate.get(lastDate), prevRow = prevDate ? byDate.get(prevDate) : new Map();
+  const cell = urls => {
     if (!urls.length || urls.some(u => !nowRow.has(u))) return '<td>–</td>';
-    const now = urls.reduce((s, u) => s + nowRow.get(u), 0);
-    const nPrev = urls.filter(u => prevRow.has(u)).length;
+    const now = urls.reduce((s, u) => s + nowRow.get(u), 0), nPrev = urls.filter(u => prevRow.has(u)).length;
     const chg = nPrev === urls.length ? fmtSigned(now - urls.reduce((s, u) => s + prevRow.get(u), 0)) : nPrev === 0 ? 'uusi' : 'ei vert.';
     return `<td>${fmtN(now)}<span class="chg">${chg}</span></td>`;
   };
@@ -386,34 +547,45 @@ function renderTable() {
   html += '<tr class="total"><td>Kaikki</td>' + ORDER.Huoneita.map(r => cell(urlsFor(null, r))).join('') + cell(urlsFor(null, null)) + '</tr></tbody>';
   document.getElementById('latestTable').innerHTML = html;
 }
-
 function update() {
-  renderFilters();
-  const full = series(selectedUrls());
-  renderKpis(full);
-  renderMain(full);
-  renderMultiples();
-  renderTable();
+  const bnd = bounds(), full = series(selectedUrls());
+  renderFilters(document.getElementById('filtersMain'));
+  renderFilters(document.getElementById('filtersFloat'));
+  document.getElementById('summaryTxt').textContent = summaryText();
+  document.getElementById('summaryTxtMain').textContent = summaryText();
+  renderKpis(full, bnd);
+  renderMultiples(bnd);
+  renderMain(full, bnd);
+  renderTable(bnd);
+}
+
+function setupFloat() {
+  const bar = document.getElementById('floatbar'), btn = document.getElementById('floatToggle');
+  const setOpen = open => { state.floatOpen = open; bar.classList.toggle('open', open); btn.setAttribute('aria-expanded', open); btn.textContent = open ? 'Sulje ▴' : 'Muuta ▾'; };
+  btn.onclick = () => setOpen(!state.floatOpen);
+  new IntersectionObserver(([e]) => {
+    const show = !e.isIntersecting && e.boundingClientRect.top < 0;
+    bar.classList.toggle('show', show); bar.setAttribute('aria-hidden', !show);
+    if (!show) setOpen(false);
+  }).observe(document.getElementById('filterCard'));
 }
 
 async function init() {
   try {
-    const [mapText, dataText] = await Promise.all([
-      fetch('URL_Mapping.csv', { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('URL_Mapping.csv ' + r.status); return r.text(); }),
-      fetch('data.csv', { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error('data.csv ' + r.status); return r.text(); }),
-    ]);
+    const get = f => fetch(f, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.text(); });
+    const [mapText, dataText] = await Promise.all([get('URL_Mapping.csv'), get('data.csv')]);
     mapping = parseCSV(mapText);
-    for (const r of parseCSV(dataText)) {
-      if (!byDate.has(r.date)) byDate.set(r.date, new Map());
-      byDate.get(r.date).set(r.url, +r.vacancy);
-    }
+    for (const r of parseCSV(dataText)) { if (!byDate.has(r.date)) byDate.set(r.date, new Map()); byDate.get(r.date).set(r.url, +r.vacancy); }
     dates = [...byDate.keys()].sort();
-    document.getElementById('updated').textContent = `Viimeisin mittaus ${fmtD(dates[dates.length - 1])} · ${dates.length} mittauskertaa ${fmtD(dates[0])} alkaen`;
-    document.getElementById('trendToggle').onchange = e => { state.trend = e.target.checked; renderMain(series(selectedUrls())); };
+    document.getElementById('updated').innerHTML = `<b>Viimeisin data ${fmtD(dates[dates.length - 1])}</b> · ${dates.length} datahakua ${fmtD(dates[0])} alkaen`;
+    setupFloat();
+    const fc = document.getElementById('filterCard'), ft = document.getElementById('filterToggle');
+    ft.onclick = () => { const open = !fc.classList.contains('open'); fc.classList.toggle('open', open); ft.setAttribute('aria-expanded', open); ft.textContent = open ? 'Piilota suodattimet' : 'Näytä suodattimet'; };
     update();
-    let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(update, 150); });
+    let rt, lastW = window.innerWidth;
+    window.addEventListener('resize', () => { if (window.innerWidth === lastW) return; lastW = window.innerWidth; clearTimeout(rt); rt = setTimeout(update, 150); });
   } catch (e) {
-    document.getElementById('updated').innerHTML = `<span class="err">Tietojen lataus epäonnistui: ${e.message}</span>`;
+    document.getElementById('updated').innerHTML = `<span class="err">Datan lataus epäonnistui: ${e.message}</span>`;
   }
 }
 init();
