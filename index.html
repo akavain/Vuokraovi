@@ -65,6 +65,11 @@ header p { margin: 0; color: var(--on-bg-2); }
 .opt .since { font-size: 11px; color: var(--ink-3); margin-top: 3px; white-space: nowrap; }
 .chip { font: inherit; font-size: 14px; border: 1px solid var(--chip-border); background: var(--chip-bg); color: var(--ink); border-radius: 999px; padding: 5px 12px; cursor: pointer; min-height: 32px; white-space: nowrap; }
 .chip[aria-pressed="true"] { background: var(--chip-on-bg); color: var(--chip-on-ink); border-color: var(--chip-on-bg); }
+.seg { display: inline-flex; background: var(--chip-bg); border: 1px solid var(--chip-on-bg); border-radius: 999px; padding: 2px; gap: 2px; }
+.seg button { font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--ink); border-radius: 999px; padding: 4px 12px; min-height: 28px; cursor: pointer; white-space: nowrap; }
+.seg button[aria-checked="true"] { background: var(--chip-on-bg); color: var(--chip-on-ink); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.segnote { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
 .chip:focus-visible, .monthin:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pks { display: flex; flex-direction: column; align-items: stretch; }
 .pks .chips { flex-wrap: nowrap; }
@@ -92,11 +97,14 @@ header p { margin: 0; color: var(--on-bg-2); }
 .kpi .k { font-size: 13px; color: var(--ink-3); }
 .kpi .v { font-size: 30px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .kpi .d { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#selNote .note { margin: 16px 0 0; }
+.mainstats { font-size: 14px; color: var(--ink-2); margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+.mainstats b { color: var(--ink); font-size: 16px; }
 .note { background: var(--note-bg); color: var(--ink); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin: 6px 0 10px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); align-items: center; margin-bottom: 4px; }
 .legend .sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--line); vertical-align: middle; margin-right: 6px; }
 .legend .sw.trend { border-top: 2px dashed var(--trend); }
-.legend .sw.shade { height: 12px; border: 0; border-left: 2px solid var(--shade-edge); background: var(--shade); width: 18px; }
+.legend .sw.shade { height: 12px; border: 0; border-right: 2px solid var(--shade-edge); background: var(--shade); width: 18px; }
 .legend label { cursor: pointer; }
 .chart { position: relative; }
 .chart svg { display: block; width: 100%; overflow: visible; }
@@ -152,13 +160,12 @@ footer a { color: inherit; }
 
   <section class="kpis" id="kpis" aria-label="Tunnusluvut"></section>
 
+  <div id="selNote"></div>
+
   <section class="card">
     <div class="head-row">
-      <div>
-        <h2>Jaottelu</h2>
-        <p class="sub">Iso luku on viimeisin data. Alla muutos edellisestä datahausta ja valitun aikavälin alusta. Jokaisella kuvalla on oma pystyakselinsa, joten kuvat näyttävät kehityksen suunnan, eivät keskinäistä kokoa.</p>
-      </div>
-      <div class="chips" id="splitChips"></div>
+      <p class="sub" style="margin:0">Kuvien skaalaus ei ole yhtenäinen, joten niistä näkee kunkin kuvaajan oman trendin.</p>
+      <div id="splitChips"></div>
     </div>
     <div class="grid" id="multiples"></div>
   </section>
@@ -169,9 +176,9 @@ footer a { color: inherit; }
         <h2>Ilmoituksia valinnalla yhteensä</h2>
         <p class="sub" id="mainSub"></p>
       </div>
-      <div class="chips" id="modeChips"></div>
+      <div id="modeChips"></div>
     </div>
-    <div id="mainNote"></div>
+    <div class="mainstats" id="mainStats"></div>
     <div class="legend" id="mainLegend"></div>
     <div class="chart" id="mainChart"></div>
   </section>
@@ -272,6 +279,15 @@ function chip(label, pressed, onclick, extraClass = '') {
   const b = document.createElement('button'); b.className = 'chip ' + extraClass; b.type = 'button';
   b.textContent = label; b.setAttribute('aria-pressed', pressed); b.onclick = onclick; return b;
 }
+// Either/or switch: one control, exactly one option on.
+function seg(items, label) {
+  const g = document.createElement('div'); g.className = 'seg'; g.setAttribute('role', 'radiogroup'); if (label) g.setAttribute('aria-label', label);
+  for (const it of items) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = it.label;
+    b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', !!it.on); b.onclick = it.onclick; g.appendChild(b);
+  }
+  return g;
+}
 function optWrap(btn, since) {
   const o = document.createElement('div'); o.className = 'opt'; o.appendChild(btn);
   if (since) { const s = document.createElement('span'); s.className = 'since'; s.textContent = 'data alkaen ' + fmtD(since); o.appendChild(s); }
@@ -319,6 +335,9 @@ function renderFilters(root) {
       grp.appendChild(rest);
       if (shared) { grp.appendChild(braceEl()); const n = document.createElement('span'); n.className = 'bracenote'; n.textContent = 'data alkaen ' + fmtD(starts[0]); grp.appendChild(n); }
       wrap.appendChild(grp); g.appendChild(wrap);
+    } else if (!d.multi) {
+      g.appendChild(seg(ORDER[d.key].map(v => ({ label: d.fmt ? d.fmt(v) : v, on: state[d.key].has(v), onclick: () => toggle(d.key, v) })), d.label));
+      for (const v of ORDER[d.key]) { const s = lateStart(d.key, v); if (s) { const n = document.createElement('div'); n.className = 'segnote'; n.textContent = `${v}: data alkaen ${fmtD(s)}`; g.appendChild(n); } }
     } else {
       const chips = document.createElement('div'); chips.className = 'chips';
       for (const v of ORDER[d.key]) chips.appendChild(optWrap(chip(d.fmt ? d.fmt(v) : v, state[d.key].has(v), () => toggle(d.key, v)), lateStart(d.key, v)));
@@ -329,9 +348,7 @@ function renderFilters(root) {
   // time range (own column on the right)
   const g = document.createElement('div'); g.className = 'fgroup ftime';
   g.innerHTML = '<div class="flabel">Aikaväli</div>';
-  const chips = document.createElement('div'); chips.className = 'chips';
-  for (const [lbl, days] of PRESETS) chips.appendChild(chip(lbl, state.preset === days, () => { state.preset = days; update(); }));
-  g.appendChild(chips);
+  g.appendChild(seg(PRESETS.map(([lbl, days]) => ({ label: lbl, on: state.preset === days, onclick: () => { state.preset = days; update(); } })), 'Aikaväli'));
   const [a, b] = bounds();
   const minM = dates[0].slice(0, 7), maxM = dates[dates.length - 1].slice(0, 7);
   const months = document.createElement('div'); months.className = 'months';
@@ -438,6 +455,13 @@ function drawLine(container, pts, opts) {
     add('line', { x1: X(complete[0].date), y1: Y(a + b * xs[0]), x2: X(complete[n - 1].date), y2: Y(a + b * xs[n - 1]), stroke: 'var(--trend)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4', opacity: .7 });
   }
   const last = valid[valid.length - 1];
+  if (!compact && complete.length > 1) {
+    const f0 = complete[0];
+    add('circle', { cx: X(f0.date), cy: Y(f0.v), r: 4, fill: 'var(--card)', stroke: 'var(--line)', 'stroke-width': 2 });
+    const above = Y(f0.v) - 12 > m.t + 4;
+    const t = add('text', { x: X(f0.date), y: above ? Y(f0.v) - 12 : Y(f0.v) + 20, 'text-anchor': X(f0.date) - m.l < 30 ? 'start' : 'middle', fill: 'var(--ink)', 'font-size': 13 });
+    t.textContent = fmtN(f0.v);
+  }
   add('circle', { cx: X(last.date), cy: Y(last.v), r: compact ? 3.5 : 5, fill: 'var(--accent)', stroke: 'var(--line)', 'stroke-width': 2 });
   if (!compact) { const t = add('text', { x: X(last.date) + 10, y: Y(last.v) + 4, fill: 'var(--ink)', 'font-size': 13 }); t.textContent = fmtN(last.v); }
   container.appendChild(svg);
@@ -530,21 +554,29 @@ function renderKpis(full, [, b]) {
   el.innerHTML = card('Ilmoituksia', fmtN(last.v), fmtD(last.date)) + chg(prev, 'Muutos edellisestä') + chg(ago(28), 'Muutos 4 viikossa') + chg(ago(365), 'Muutos vuodessa');
 }
 function renderMain(full, bnd) {
+  // "Vuodet päällekkäin" only when comparable data covers at least two calendar years
+  const yoyOk = new Set(full.filter(isComplete).map(p => p.date.slice(0, 4))).size >= 2;
+  if (!yoyOk) state.mode = 'time';
   const mc = document.getElementById('modeChips'); mc.innerHTML = '';
-  mc.appendChild(chip('Aikajana', state.mode === 'time', () => { state.mode = 'time'; update(); }));
-  mc.appendChild(chip('Vuodet päällekkäin', state.mode === 'yoy', () => { state.mode = 'yoy'; update(); }));
-  const note = document.getElementById('mainNote'), sub = document.getElementById('mainSub'), legend = document.getElementById('mainLegend');
+  if (yoyOk) mc.appendChild(seg([
+    { label: 'Aikajana', on: state.mode === 'time', onclick: () => { state.mode = 'time'; update(); } },
+    { label: 'Vuodet päällekkäin', on: state.mode === 'yoy', onclick: () => { state.mode = 'yoy'; update(); } }], 'Näkymä'));
+  const note = document.getElementById('selNote'), sub = document.getElementById('mainSub'), legend = document.getElementById('mainLegend');
+  const stats = document.getElementById('mainStats');
   const fv = firstValid(full);
   // which selected options limit the shared history?
   let limiting = [];
   if (fv && fv.date > dates[0]) for (const d of DIMS) for (const v of state[d.key]) { const s = lateStart(d.key, v); if (s && s >= fv.date) limiting.push(d.fmt ? d.fmt(v) : v); }
   note.innerHTML = fv && fv.date > dates[0]
     ? `<div class="note">Valinnan yhtenäinen data alkaa ${fmtD(fv.date)}${limiting.length ? ', koska valinnalle ' + (limiting.length > 1 ? limiting.slice(0, -1).join(', ') + ' ja ' + limiting[limiting.length - 1] : limiting[0]) + ' on dataa vasta siitä alkaen' : ''}. Aiempi jakso näkyy kuvissa vaaleanpunaisella taustalla: siinä on mukana vain osa valinnasta, joten se ei ole vertailukelpoinen.</div>` : '';
+  const comp = inBounds(full, bnd).filter(isComplete), c0 = comp[0], c1 = comp[comp.length - 1];
+  stats.innerHTML = state.mode === 'yoy' || !c1 ? '' : `<b>${fmtN(c1.v)}</b> ${fmtD(c1.date)}` +
+    (c0 && c0 !== c1 ? ` · ${fmtSigned(c1.v - c0.v)} (${fmtPct(c1.v - c0.v, c0.v)}) vs. ${fmtN(c0.v)} ${fmtD(c0.date)}` : '');
   if (state.mode === 'yoy') {
     sub.textContent = 'Vuodet päällekkäin tammikuusta joulukuuhun kausivaihtelun vertailuun. Käyttää koko historiaa aikavälivalinnasta riippumatta.';
     drawSeasonal(document.getElementById('mainChart'), full);
   } else {
-    sub.textContent = 'Viikoittainen ilmoitusmäärä valitulla aikavälillä.';
+    sub.textContent = 'Viikoittainen ilmoitusmäärä valitulla aikavälillä. Muutos lasketaan vertailukelpoisen jakson alusta.';
     legend.innerHTML = '<span><span class="sw"></span>Ilmoituksia</span><label><input type="checkbox" id="trendToggle"' + (state.trend ? ' checked' : '') + '> <span class="sw trend"></span>Lineaarinen trendi</label>' +
       (inBounds(full, bnd).some(p => p.v === null || p.partial) ? '<span><span class="sw shade"></span>Osa valinnasta puuttuu (ei vertailukelpoinen)</span>' : '');
     document.getElementById('trendToggle').onchange = e => { state.trend = e.target.checked; update(); };
@@ -553,8 +585,8 @@ function renderMain(full, bnd) {
 }
 function renderMultiples(bnd) {
   const sc = document.getElementById('splitChips'); sc.innerHTML = '';
-  for (const [key, lbl] of [['Kaupunki', 'Kaupunki'], ['Huoneita', 'Huoneluku'], ['Asumismuoto', 'Asumismuoto']])
-    sc.appendChild(chip(lbl, state.split === key, () => { state.split = key; update(); }));
+  sc.appendChild(seg([['Kaupunki', 'Kaupunki'], ['Huoneita', 'Huoneluku'], ['Asumismuoto', 'Asumismuoto']].map(([key, lbl]) =>
+    ({ label: lbl, on: state.split === key, onclick: () => { state.split = key; update(); } })), 'Jaottelu'));
   const grid = document.getElementById('multiples'); grid.innerHTML = '';
   const dimDef = DIMS.find(d => d.key === state.split);
   for (const v of ORDER[state.split].filter(v => state[state.split].has(v))) {
@@ -562,12 +594,10 @@ function renderMultiples(bnd) {
     const valid = pts.filter(isComplete);
     const last = valid[valid.length - 1], first = valid[0];
     const div = document.createElement('div'); div.className = 'mini';
-    const prev = valid[valid.length - 2];
     const partial = first && pts.some(p => (p.v === null || p.partial) && p.date < first.date);
-    const weekTxt = last && prev ? `${fmtSigned(last.v - prev.v)} vs. ${fmtD(prev.date)}` : '';
-    const periodTxt = last && first && first !== last ? `${fmtSigned(last.v - first.v)} (${fmtPct(last.v - first.v, first.v)}) vs. ${fmtD(first.date)}${partial ? ' (data alkaa)' : ''}` : (partial ? `data alkaen ${fmtD(first.date)}` : '');
-    div.innerHTML = `<div class="t">${dimDef.fmt ? dimDef.fmt(v) : v}</div><div class="v">${last ? fmtN(last.v) : '–'}<span class="asof">${last ? fmtD(last.date) : ''}</span></div>` +
-      `<div class="d">${weekTxt || '&nbsp;'}</div><div class="d">${periodTxt || '&nbsp;'}</div>`;
+    const from = partial ? `vs. ${fmtD(first.date).replace(/\d\d(\d\d)$/, '$1')}` : 'jakson alusta';
+    const chgTxt = last && first && first !== last ? `${fmtSigned(last.v - first.v)} (${fmtPct(last.v - first.v, first.v)}) ${from}` : (first && partial ? `data alkaen ${fmtD(first.date)}` : '');
+    div.innerHTML = `<div class="t">${dimDef.fmt ? dimDef.fmt(v) : v}</div><div class="v">${last ? fmtN(last.v) : '–'}</div><div class="d">${chgTxt || '&nbsp;'}</div>`;
     const c = document.createElement('div'); c.className = 'chart'; div.appendChild(c); grid.appendChild(div);
     drawLine(c, pts, { compact: true, height: 70, domain: bnd, label: `${v}: ilmoitusten määrä` });
   }
