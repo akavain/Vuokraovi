@@ -568,7 +568,7 @@ function renderMain(full, bnd) {
   let limiting = [];
   if (fv && fv.date > dates[0]) for (const d of DIMS) for (const v of state[d.key]) { const s = lateStart(d.key, v); if (s && s >= fv.date) limiting.push(d.fmt ? d.fmt(v) : v); }
   note.innerHTML = fv && fv.date > dates[0]
-    ? `<div class="note">Valinnan yhtenäinen data alkaa ${fmtD(fv.date)}${limiting.length ? ', koska valinnalle ' + (limiting.length > 1 ? limiting.slice(0, -1).join(', ') + ' ja ' + limiting[limiting.length - 1] : limiting[0]) + ' on dataa vasta siitä alkaen' : ''}. Aiempi jakso näkyy kuvissa vaaleanpunaisella taustalla: siinä on mukana vain osa valinnasta, joten se ei ole vertailukelpoinen.</div>` : '';
+    ? `<div class="note"><b>Valinnan yhtenäinen data alkaa ${fmtD(fv.date)}</b>${limiting.length ? ', koska valinnalle ' + (limiting.length > 1 ? limiting.slice(0, -1).join(', ') + ' ja ' + limiting[limiting.length - 1] : limiting[0]) + ' on dataa vasta siitä alkaen' : ''}. Aiempi jakso näkyy kuvissa vaaleanpunaisella taustalla. Kuvaajien muutokset lasketaan vain vertailukelpoiselta ajalta.</div>` : '';
   const comp = inBounds(full, bnd).filter(isComplete), c0 = comp[0], c1 = comp[comp.length - 1];
   stats.innerHTML = state.mode === 'yoy' || !c1 ? '' : `<b>${fmtN(c1.v)}</b> ${fmtD(c1.date)}` +
     (c0 && c0 !== c1 ? ` · ${fmtSigned(c1.v - c0.v)} (${fmtPct(c1.v - c0.v, c0.v)}) vs. ${fmtN(c0.v)} ${fmtD(c0.date)}` : '');
