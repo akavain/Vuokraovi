@@ -98,8 +98,12 @@ header p { margin: 0; color: var(--on-bg-2); }
 .kpi .v { font-size: 30px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .kpi .d { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 #selNote .note { margin: 16px 0 0; }
-.mainstats { font-size: 14px; color: var(--ink-2); margin: 0 0 10px; font-variant-numeric: tabular-nums; }
-.mainstats b { color: var(--ink); font-size: 16px; }
+.mainstats { margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+.mainstats .v { font-size: 20px; }
+.mainstats .d { font-size: 12px; color: var(--ink-3); }
+#modeChips { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+.trendtoggle { font-size: 13px; color: var(--ink-2); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.trendtoggle .sw { display: inline-block; width: 22px; border-top: 2px dashed var(--trend); }
 .note { background: var(--note-bg); color: var(--ink); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin: 6px 0 10px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); align-items: center; margin-bottom: 4px; }
 .legend .sw { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--line); vertical-align: middle; margin-right: 6px; }
@@ -134,6 +138,7 @@ footer a { color: inherit; }
   th, td { padding: 6px 5px; } .card { padding: 16px 14px; } .filtercard { padding: 12px 14px; }
   .filters { flex-direction: column; } .ftime { border-left: 0; padding-left: 0; } .ftime .months { flex-direction: row; align-items: center; }
   .filtercard .fhead { display: flex; }
+  .seg button { padding: 4px 9px; }
   .filtercard:not(.open) #filtersMain { display: none; }
   .filtercard.open .fhead { margin-bottom: 12px; }
 }
@@ -179,7 +184,6 @@ footer a { color: inherit; }
       <div id="modeChips"></div>
     </div>
     <div class="mainstats" id="mainStats"></div>
-    <div class="legend" id="mainLegend"></div>
     <div class="chart" id="mainChart"></div>
   </section>
 
@@ -204,7 +208,7 @@ const DIMS = [
   { key: 'Asumismuoto', label: 'Asumismuoto', multi: true },
 ];
 const PKS = ['Helsinki', 'Espoo', 'Vantaa'];
-const PRESETS = [ ['3 kk', 91], ['6 kk', 182], ['12 kk', 365], ['Kaikki', 0] ];
+const PRESETS = [ ['3 kk', 91], ['Vuoden alusta', 'ytd'], ['12 kk', 365], ['Kaikki', 0] ];
 const ORDER = { Kaupunki: ['Helsinki','Espoo','Vantaa','Turku','Tampere'], Huoneita: ['1','2','3','4+'], Tila: ['Kaikki','Heti vapaa'], Asumismuoto: ['Vuokra','Asumisoikeus'] };
 const MONTHS = ['tammi','helmi','maalis','huhti','touko','kesä','heinä','elo','syys','loka','marras','joulu'];
 const nf = new Intl.NumberFormat('fi-FI');
@@ -261,6 +265,7 @@ function bounds() {
     if (from < first) from = first; if (to > last) to = last; if (to < from) to = from;
     return [from, to];
   }
+  if (state.preset === 'ytd') { const y0 = last.slice(0, 4) + '-01-01'; return [y0 < first ? first : y0, last]; }
   return [state.preset ? isoAdd(last, -state.preset) : first, last];
 }
 const inBounds = (pts, [a, b]) => pts.filter(p => p.date >= a && p.date <= b);
@@ -380,24 +385,29 @@ function svgEl(W, H, label) {
   return [svg, add];
 }
 function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw || 1))); const f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+// Y axis always starts at zero so changes are not exaggerated.
 function yScale(vals, H, m) {
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  const pad = (hi - lo) * 0.12 || Math.max(hi * 0.05, 1);
-  lo = Math.max(0, lo - pad); hi = hi + pad;
+  const lo = 0, hi = Math.max(...vals, 1) * 1.06;
   return [v => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo)), lo, hi];
 }
-function yAxis(add, Y, lo, hi, W, m) {
+function yAxis(add, Y, lo, hi, W, m, vmax) {
   const ax = add('g', { class: 'axis' }); const step = niceStep((hi - lo) / 5);
+  let top = lo;
   for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
     add('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: 'var(--grid)', 'stroke-width': 1 }, ax);
-    const t = add('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, ax); t.textContent = fmtN(v);
+    const t = add('text', { x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end' }, ax); t.textContent = fmtN(v); top = v;
+  }
+  // label the data maximum too, unless it would crowd the nearest tick
+  if (vmax !== undefined && vmax - top > step * 0.3) {
+    add('line', { x1: m.l, x2: W - m.r, y1: Y(vmax), y2: Y(vmax), stroke: 'var(--grid)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, ax);
+    const t = add('text', { x: m.l - 8, y: Y(vmax) + 4, 'text-anchor': 'end' }, ax); t.textContent = fmtN(vmax);
   }
   return ax;
 }
 function drawLine(container, pts, opts) {
   const W = container.clientWidth || 600, compact = !!opts.compact;
   const H = opts.height || (W < 500 ? 240 : 320);
-  const m = compact ? { t: 6, r: 6, b: 4, l: 6 } : { t: 12, r: W < 500 ? 48 : 64, b: 28, l: W < 500 ? 44 : 56 };
+  const m = compact ? { t: 8, r: 6, b: 4, l: 6 } : { t: 12, r: W < 500 ? 48 : 64, b: 28, l: W < 500 ? 44 : 56 };
   const [d0, d1] = opts.domain;
   const x0 = ts(d0), span = Math.max(ts(d1) - x0, 1);
   const X = iso => m.l + (W - m.l - m.r) * (ts(iso) - x0) / span;
@@ -415,7 +425,7 @@ function drawLine(container, pts, opts) {
     add('rect', { x: xa, y: m.t, width: Math.max(0, xb - xa), height: H - m.t - m.b, fill: 'var(--shade)' });
     if (next) add('line', { x1: xb, x2: xb, y1: m.t, y2: H - m.b, stroke: 'var(--shade-edge)', 'stroke-width': compact ? 1.5 : 2 });
     if (!compact && !labelDone && xb - xa > 170) {
-      const t = add('text', { x: xa + 10, y: m.t + 18, fill: 'var(--ink-2)', 'font-size': 12 });
+      const t = add('text', { x: xa + 10, y: H - m.b - 10, fill: 'var(--ink-2)', 'font-size': 12 });
       t.textContent = valid.length ? 'Osa valinnasta puuttuu – ei vertailukelpoinen' : 'Valinnalla ei dataa tällä aikavälillä';
       labelDone = true;
     }
@@ -427,7 +437,7 @@ function drawLine(container, pts, opts) {
   }
   const [Y, lo, hi] = yScale(valid.map(p => p.v), H, m);
   if (!compact) {
-    const ax = yAxis(add, Y, lo, hi, W, m);
+    const ax = yAxis(add, Y, lo, hi, W, m, Math.max(...valid.map(p => p.v)));
     const totalMonths = Math.max(1, Math.round(span / (30.4 * 864e5)));
     const fit = Math.max(1, Math.floor((W - m.l - m.r) / 64));
     const every = [1, 2, 3, 4, 6, 12].find(n => totalMonths / n <= fit) || 12;
@@ -510,7 +520,7 @@ function drawSeasonal(container, full) {
   const colorOf = y => ['var(--y0)', 'var(--y1)', 'var(--y2)', 'var(--y3)'][Math.min(years.length - 1 - years.indexOf(y), 3)];
   const [svg, add] = svgEl(W, H, 'Ilmoitusten määrä vuosittain päällekkäin');
   const [Y, lo, hi] = yScale(valid.map(p => p.v), H, m);
-  const ax = yAxis(add, Y, lo, hi, W, m);
+  const ax = yAxis(add, Y, lo, hi, W, m, Math.max(...valid.map(p => p.v)));
   const step = W < 500 ? 2 : 1;
   for (let mo = 0; mo < 12; mo += step) {
     const x = X(doy(`2025-${String(mo + 1).padStart(2, '0')}-01`));
@@ -518,8 +528,6 @@ function drawSeasonal(container, full) {
     const t = add('text', { x: x + 2, y: H - 8, 'text-anchor': 'start' }, ax); t.textContent = MONTHS[mo];
   }
   const lines = years.map(y => ({ y, pts: full.filter(p => p.date.startsWith(y)) }));
-  const legend = document.getElementById('mainLegend');
-  legend.innerHTML = years.slice().reverse().map(y => `<span><span class="sw" style="border-top-color:${colorOf(y)}"></span>${y}</span>`).join('');
   for (const { y, pts } of lines) {
     let d = '', pen = false;
     for (const p of pts) { if (p.v === null) { pen = false; continue; } d += (pen ? 'L' : 'M') + X(doy(p.date)).toFixed(1) + ',' + Y(p.v).toFixed(1); pen = true; }
@@ -542,6 +550,14 @@ function drawSeasonal(container, full) {
   });
 }
 
+// "−1 100 (−25,3 %) jakson alusta", or "vs. 18.12.25" when the comparable data starts later than the range
+function changeText(pts) {
+  const comp = pts.filter(isComplete), first = comp[0], last = comp[comp.length - 1];
+  const partial = first && pts.some(p => (p.v === null || p.partial) && p.date < first.date);
+  if (last && first && first !== last) return `${fmtSigned(last.v - first.v)} (${fmtPct(last.v - first.v, first.v)}) ${partial ? 'vs. ' + fmtD(first.date).replace(/\d\d(\d\d)$/, '$1') : 'jakson alusta'}`;
+  return first && partial ? `data alkaen ${fmtD(first.date)}` : '';
+}
+
 // ---------- sections ----------
 function renderKpis(full, [, b]) {
   const valid = full.filter(p => isComplete(p) && p.date <= b);
@@ -558,10 +574,16 @@ function renderMain(full, bnd) {
   const yoyOk = new Set(full.filter(isComplete).map(p => p.date.slice(0, 4))).size >= 2;
   if (!yoyOk) state.mode = 'time';
   const mc = document.getElementById('modeChips'); mc.innerHTML = '';
+  if (state.mode === 'time') {
+    const tl = document.createElement('label'); tl.className = 'trendtoggle';
+    tl.innerHTML = `<input type="checkbox"${state.trend ? ' checked' : ''}><span class="sw"></span>Trendiviiva`;
+    tl.querySelector('input').onchange = e => { state.trend = e.target.checked; update(); };
+    mc.appendChild(tl);
+  }
   if (yoyOk) mc.appendChild(seg([
     { label: 'Aikajana', on: state.mode === 'time', onclick: () => { state.mode = 'time'; update(); } },
     { label: 'Vuodet päällekkäin', on: state.mode === 'yoy', onclick: () => { state.mode = 'yoy'; update(); } }], 'Näkymä'));
-  const note = document.getElementById('selNote'), sub = document.getElementById('mainSub'), legend = document.getElementById('mainLegend');
+  const note = document.getElementById('selNote'), sub = document.getElementById('mainSub');
   const stats = document.getElementById('mainStats');
   const fv = firstValid(full);
   // which selected options limit the shared history?
@@ -569,17 +591,13 @@ function renderMain(full, bnd) {
   if (fv && fv.date > dates[0]) for (const d of DIMS) for (const v of state[d.key]) { const s = lateStart(d.key, v); if (s && s >= fv.date) limiting.push(d.fmt ? d.fmt(v) : v); }
   note.innerHTML = fv && fv.date > dates[0]
     ? `<div class="note"><b>Valinnan yhtenäinen data alkaa ${fmtD(fv.date)}</b>${limiting.length ? ', koska valinnalle ' + (limiting.length > 1 ? limiting.slice(0, -1).join(', ') + ' ja ' + limiting[limiting.length - 1] : limiting[0]) + ' on dataa vasta siitä alkaen' : ''}. Aiempi jakso näkyy kuvissa vaaleanpunaisella taustalla. Kuvaajien muutokset lasketaan vain vertailukelpoiselta ajalta.</div>` : '';
-  const comp = inBounds(full, bnd).filter(isComplete), c0 = comp[0], c1 = comp[comp.length - 1];
-  stats.innerHTML = state.mode === 'yoy' || !c1 ? '' : `<b>${fmtN(c1.v)}</b> ${fmtD(c1.date)}` +
-    (c0 && c0 !== c1 ? ` · ${fmtSigned(c1.v - c0.v)} (${fmtPct(c1.v - c0.v, c0.v)}) vs. ${fmtN(c0.v)} ${fmtD(c0.date)}` : '');
+  const inR = inBounds(full, bnd), comp = inR.filter(isComplete), c1 = comp[comp.length - 1];
+  stats.innerHTML = state.mode === 'yoy' || !c1 ? '' : `<div class="v">${fmtN(c1.v)}</div><div class="d">${changeText(inR) || '&nbsp;'}</div>`;
   if (state.mode === 'yoy') {
     sub.textContent = 'Vuodet päällekkäin tammikuusta joulukuuhun kausivaihtelun vertailuun. Käyttää koko historiaa aikavälivalinnasta riippumatta.';
     drawSeasonal(document.getElementById('mainChart'), full);
   } else {
     sub.textContent = 'Viikoittainen ilmoitusmäärä valitulla aikavälillä. Muutos lasketaan vertailukelpoisen jakson alusta.';
-    legend.innerHTML = '<span><span class="sw"></span>Ilmoituksia</span><label><input type="checkbox" id="trendToggle"' + (state.trend ? ' checked' : '') + '> <span class="sw trend"></span>Lineaarinen trendi</label>' +
-      (inBounds(full, bnd).some(p => p.v === null || p.partial) ? '<span><span class="sw shade"></span>Osa valinnasta puuttuu (ei vertailukelpoinen)</span>' : '');
-    document.getElementById('trendToggle').onchange = e => { state.trend = e.target.checked; update(); };
     drawLine(document.getElementById('mainChart'), inBounds(full, bnd), { domain: bnd, trend: state.trend, label: 'Ilmoitusten määrä ajan yli' });
   }
 }
@@ -594,12 +612,10 @@ function renderMultiples(bnd) {
     const valid = pts.filter(isComplete);
     const last = valid[valid.length - 1], first = valid[0];
     const div = document.createElement('div'); div.className = 'mini';
-    const partial = first && pts.some(p => (p.v === null || p.partial) && p.date < first.date);
-    const from = partial ? `vs. ${fmtD(first.date).replace(/\d\d(\d\d)$/, '$1')}` : 'jakson alusta';
-    const chgTxt = last && first && first !== last ? `${fmtSigned(last.v - first.v)} (${fmtPct(last.v - first.v, first.v)}) ${from}` : (first && partial ? `data alkaen ${fmtD(first.date)}` : '');
+    const chgTxt = changeText(pts);
     div.innerHTML = `<div class="t">${dimDef.fmt ? dimDef.fmt(v) : v}</div><div class="v">${last ? fmtN(last.v) : '–'}</div><div class="d">${chgTxt || '&nbsp;'}</div>`;
     const c = document.createElement('div'); c.className = 'chart'; div.appendChild(c); grid.appendChild(div);
-    drawLine(c, pts, { compact: true, height: 70, domain: bnd, label: `${v}: ilmoitusten määrä` });
+    drawLine(c, pts, { compact: true, height: 80, domain: bnd, label: `${v}: ilmoitusten määrä` });
   }
 }
 function renderTable([, b]) {
