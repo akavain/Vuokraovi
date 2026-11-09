@@ -9,6 +9,10 @@ on:
         description: "Only refresh data.csv for the dashboard (no new scrape)"
         type: boolean
         default: false
+      notify_test:
+        description: "Send the update notification now (for testing)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write          # needed to commit data.csv
@@ -29,6 +33,10 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4 gspread google-auth
 
+      - name: Remember latest date before update
+        id: before
+        run: echo "latest=$(tail -n +2 data.csv | cut -d, -f1 | sort | tail -1)" >> "$GITHUB_OUTPUT"
+
       - name: Run scraper
         if: ${{ !inputs.export_only }}
         env:
@@ -40,6 +48,14 @@ jobs:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         run: python export_data.py
 
+      - name: Check for new data
+        id: after
+        run: |
+          latest=$(tail -n +2 data.csv | cut -d, -f1 | sort | tail -1)
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$latest" \> "${{ steps.before.outputs.latest }}" ]; then echo "new=true" >> "$GITHUB_OUTPUT"; else echo "new=false" >> "$GITHUB_OUTPUT"; fi
+          echo "Latest date before: ${{ steps.before.outputs.latest }}, after: $latest"
+
       - name: Commit data.csv
         run: |
           git config user.email "github-actions@github.com"
@@ -49,3 +65,13 @@ jobs:
           git commit -m "Update dashboard data $(date -u +%Y-%m-%d)"
           git pull --rebase
           git push
+
+      - name: Wait for the dashboard to redeploy
+        if: ${{ steps.after.outputs.new == 'true' }}
+        run: sleep 120   # GitHub Pages needs a minute or two before the link shows the new data
+
+      - name: Send update notification
+        if: ${{ steps.after.outputs.new == 'true' || inputs.notify_test }}
+        env:
+          NOTIFY_WEBHOOK_URL: ${{ secrets.NOTIFY_WEBHOOK_URL }}
+        run: python notify.py
