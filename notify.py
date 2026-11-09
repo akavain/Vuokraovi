@@ -64,6 +64,7 @@ def build():
         return label, fi_num(now), chg
 
     rows = [line("Pääkaupunkiseutu", urls(PKS))] + [line(c, urls([c])) for c in CITIES]
+    rows.append(line("Asumisoikeus, pääkaupunkiseutu", urls(PKS, forms=("Asumisoikeus",))))
     rows.append(line("Asumisoikeus, kaikki kaupungit", urls(CITIES, forms=("Asumisoikeus",))))
     rows = [r for r in rows if r]
 
