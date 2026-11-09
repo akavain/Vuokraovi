@@ -70,8 +70,8 @@ def build():
 
     subject = f"Vuokraovi-data päivitetty {fi_date(last)}"
     intro = f"Vuokraoven ilmoitusmäärät on päivitetty {fi_date(last)}."
-    scope = "Vuokra: kerrostalot, kaikki huoneluvut, vuokra-asunnot, sekä heti vapaat että myöhemmin vapautuvat."
-    text = "\n".join([intro, "", f"Dashboard: {DASHBOARD_URL}", "", scope, ""]
+    scope = "kerrostalot, kaikki huoneluvut, sekä heti vapaat että myöhemmin vapautuvat"
+    text = "\n".join([intro, "", f"Dashboard: {DASHBOARD_URL}", "", scope, "", "Vuokra:"]
                      + [f"{a}\t{b}\t{c}" for a, b, c in rent] + [""] + [f"{a}\t{b}\t{c}" for a, b, c in aso])
 
     td = "font-family:Arial,sans-serif;font-size:14px;padding:2px 16px 2px 0"
@@ -84,12 +84,14 @@ def build():
     html = (f'<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.4">'
             f'<p style="margin:0 0 14px">{intro}</p>'
             f'<p style="margin:0 0 14px"><a href="{DASHBOARD_URL}" style="color:#004722;font-weight:bold">Avaa dashboard</a></p>'
-            f'<p style="margin:0 0 8px">{scope}</p>'
+            f'<p style="margin:0 0 14px">{scope}</p>'
+            f'<p style="margin:0 0 4px">Vuokra:</p>'
             f'{table}</div>')
     card = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "type": "AdaptiveCard", "version": "1.4",
         "body": [{"type": "TextBlock", "text": intro, "weight": "Bolder", "wrap": True},
                  {"type": "TextBlock", "text": scope, "wrap": True, "isSubtle": True, "spacing": "Medium"},
+                 {"type": "TextBlock", "text": "Vuokra:", "wrap": True, "spacing": "Medium"},
                  {"type": "FactSet", "facts": [{"title": a, "value": f"{b}  ({c})"} for a, b, c in rent]},
                  {"type": "FactSet", "spacing": "Medium", "facts": [{"title": a, "value": f"{b}  ({c})"} for a, b, c in aso]}],
         "actions": [{"type": "Action.OpenUrl", "title": "Avaa dashboard", "url": DASHBOARD_URL}],
