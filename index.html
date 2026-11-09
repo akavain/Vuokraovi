@@ -293,6 +293,12 @@ function seg(items, label) {
   }
   return g;
 }
+// "1 h, 2 h: data alkaen 27.4.2026": options with a later start, grouped by date, shown under the group
+function lateNotes(dim, values) {
+  const d = DIMS.find(x => x.key === dim), byDate = {};
+  for (const v of values) { const s = lateStart(dim, v); if (s) (byDate[s] = byDate[s] || []).push(d.fmt ? d.fmt(v) : v); }
+  return Object.entries(byDate).sort().map(([s, vs]) => { const n = document.createElement('div'); n.className = 'segnote'; n.textContent = `${vs.join(', ')}: data alkaen ${fmtD(s)}`; return n; });
+}
 function optWrap(btn, since) {
   const o = document.createElement('div'); o.className = 'opt'; o.appendChild(btn);
   if (since) { const s = document.createElement('span'); s.className = 'since'; s.textContent = 'data alkaen ' + fmtD(since); o.appendChild(s); }
@@ -322,7 +328,7 @@ function renderFilters(root) {
       const wrap = document.createElement('div'); wrap.className = 'citygroup';
       const pks = document.createElement('div'); pks.className = 'pks';
       const row = document.createElement('div'); row.className = 'chips';
-      for (const v of PKS) row.appendChild(optWrap(chip(v, state.Kaupunki.has(v), () => toggle('Kaupunki', v)), lateStart('Kaupunki', v)));
+      for (const v of PKS) row.appendChild(chip(v, state.Kaupunki.has(v), () => toggle('Kaupunki', v)));
       pks.appendChild(row); pks.appendChild(braceEl());
       const allOn = PKS.every(v => state.Kaupunki.has(v));
       pks.appendChild(chip('Pääkaupunkiseutu', allOn, () => {
@@ -336,17 +342,19 @@ function renderFilters(root) {
       const shared = starts[0] && starts.every(x => x === starts[0]);
       const grp = document.createElement('div'); grp.className = shared ? 'pks' : '';
       const rest = document.createElement('div'); rest.className = 'chips';
-      others.forEach((v, i) => rest.appendChild(optWrap(chip(v, state.Kaupunki.has(v), () => toggle('Kaupunki', v)), shared ? null : starts[i])));
+      others.forEach(v => rest.appendChild(chip(v, state.Kaupunki.has(v), () => toggle('Kaupunki', v))));
       grp.appendChild(rest);
       if (shared) { grp.appendChild(braceEl()); const n = document.createElement('span'); n.className = 'bracenote'; n.textContent = 'data alkaen ' + fmtD(starts[0]); grp.appendChild(n); }
       wrap.appendChild(grp); g.appendChild(wrap);
+      lateNotes('Kaupunki', shared ? PKS : ORDER.Kaupunki).forEach(n => g.appendChild(n));
     } else if (!d.multi) {
       g.appendChild(seg(ORDER[d.key].map(v => ({ label: d.fmt ? d.fmt(v) : v, on: state[d.key].has(v), onclick: () => toggle(d.key, v) })), d.label));
-      for (const v of ORDER[d.key]) { const s = lateStart(d.key, v); if (s) { const n = document.createElement('div'); n.className = 'segnote'; n.textContent = `${v}: data alkaen ${fmtD(s)}`; g.appendChild(n); } }
+      lateNotes(d.key, ORDER[d.key]).forEach(n => g.appendChild(n));
     } else {
       const chips = document.createElement('div'); chips.className = 'chips';
-      for (const v of ORDER[d.key]) chips.appendChild(optWrap(chip(d.fmt ? d.fmt(v) : v, state[d.key].has(v), () => toggle(d.key, v)), lateStart(d.key, v)));
+      for (const v of ORDER[d.key]) chips.appendChild(chip(d.fmt ? d.fmt(v) : v, state[d.key].has(v), () => toggle(d.key, v)));
       g.appendChild(chips);
+      lateNotes(d.key, ORDER[d.key]).forEach(n => g.appendChild(n));
     }
     el.appendChild(g);
   }

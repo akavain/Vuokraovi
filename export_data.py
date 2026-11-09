@@ -25,7 +25,18 @@ def get_rows():
     else:
         creds = Credentials.from_service_account_file(CREDS_FILE, scopes=scopes)
     sheet = gspread.authorize(creds).open(SHEET_NAME).sheet1
-    return sheet.get_all_values()[1:]  # skip header
+    shown = sheet.get_all_values()  # as displayed: keeps text dates like "13.4.2026"
+    try:
+        # raw numbers, so a cell formatted as "1 555,00" or "1,555.00" still reads as 1555
+        raw = sheet.get_all_values(value_render_option="UNFORMATTED_VALUE")
+    except Exception as e:  # older gspread: fall back to parsing the displayed text
+        print(f"Unformatted read failed ({e}); parsing displayed values")
+        raw = shown
+    rows = []
+    for i, r in enumerate(shown[1:], start=1):  # skip header
+        val = raw[i][2] if i < len(raw) and len(raw[i]) > 2 else (r[2] if len(r) > 2 else "")
+        rows.append([r[0] if r else "", r[1] if len(r) > 1 else "", val])
+    return rows
 
 
 def to_iso(d):
@@ -38,7 +49,19 @@ def to_iso(d):
 
 
 def to_int(v):
-    s = str(v).replace("\xa0", "").replace(" ", "").replace(",", ".")
+    """Read a listing count whatever the cell format: 1555, 1555.0, "1 555,00", "1,555.00", "1.555,00"."""
+    if isinstance(v, (int, float)):
+        return int(round(v))
+    s = str(v).strip().replace("\xa0", "").replace("\u202f", "").replace(" ", "")
+    if not s:
+        return None
+    if "," in s and "." in s:  # both present: the last one is the decimal separator
+        dec = "," if s.rfind(",") > s.rfind(".") else "."
+        s = s.replace("." if dec == "," else ",", "").replace(dec, ".")
+    elif "," in s:
+        s = s.replace(",", "") if re.fullmatch(r"-?\d{1,3}(,\d{3})+", s) else s.replace(",", ".")
+    elif re.fullmatch(r"-?\d{1,3}(\.\d{3})+", s):  # "1.555" = thousands (counts are whole numbers)
+        s = s.replace(".", "")
     try:
         return int(round(float(s)))
     except ValueError:
@@ -47,14 +70,13 @@ def to_int(v):
 
 def clean(rows):
     out = {}
-    skipped = 0
+    skipped = []
     for r in rows:
-        if len(r) < 3:
-            skipped += 1
-            continue
+        if len(r) < 3 or not any(str(x).strip() for x in r):
+            continue  # empty line
         date, url, val = to_iso(r[0]), str(r[1]).strip(), to_int(r[2])
         if not date or not url.startswith("http") or val is None:
-            skipped += 1
+            skipped.append(r)
             continue
         out[(date, url)] = val  # later rows win on duplicates
     return sorted(out.items()), skipped
@@ -72,7 +94,9 @@ def main():
     items, skipped = clean(get_rows())
     write_csv(items)
     dates = sorted({d for (d, _), _ in items})
-    print(f"Wrote {len(items)} rows, {len(dates)} dates ({dates[0]} .. {dates[-1]}), skipped {skipped}")
+    print(f"Wrote {len(items)} rows, {len(dates)} dates ({dates[0]} .. {dates[-1]})")
+    if skipped:
+        print(f"WARNING: skipped {len(skipped)} unreadable rows, first ones: {skipped[:5]}")
 
 
 if __name__ == "__main__":
