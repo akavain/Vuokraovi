@@ -63,25 +63,35 @@ def build():
         chg = f"{fi_signed(now - before)} vs. {fi_date(prev)}" if before is not None else "ei vertailudataa"
         return label, fi_num(now), chg
 
-    rows = [line("Pääkaupunkiseutu", urls(PKS))] + [line(c, urls([c])) for c in CITIES]
-    rows.append(line("Asumisoikeus, pääkaupunkiseutu", urls(PKS, forms=("Asumisoikeus",))))
-    rows.append(line("Asumisoikeus, kaikki kaupungit", urls(CITIES, forms=("Asumisoikeus",))))
-    rows = [r for r in rows if r]
+    rent = [r for r in [line("Pääkaupunkiseutu", urls(PKS))] + [line(c, urls([c])) for c in CITIES] if r]
+    aso = [r for r in [line("Asumisoikeus, pääkaupunkiseutu", urls(PKS, forms=("Asumisoikeus",))),
+                       line("Asumisoikeus, kaikki kaupungit", urls(CITIES, forms=("Asumisoikeus",)))] if r]
+    rows = rent + aso
 
     subject = f"Vuokraovi-data päivitetty {fi_date(last)}"
-    intro = f"Vuokraoven ilmoitusmäärät on päivitetty {fi_date(last)}. Luvut: kerrostalot, kaikki huoneluvut, vuokra-asunnot (Kaikki)."
-    text = "\n".join([intro, ""] + [f"{a}: {b} ({c})" for a, b, c in rows] + ["", f"Dashboard: {DASHBOARD_URL}"])
-    html_rows = "".join(
-        f'<tr><td style="padding:3px 12px 3px 0">{a}</td><td style="padding:3px 12px;text-align:right"><b>{b}</b></td>'
-        f'<td style="padding:3px 0;color:#6b766e">{c}</td></tr>' for a, b, c in rows)
-    html = (f'<div style="font-family:Arial,sans-serif;font-size:14px">'
-            f'<p>{intro}</p><table style="border-collapse:collapse">{html_rows}</table>'
-            f'<p><a href="{DASHBOARD_URL}" style="color:#004722;font-weight:bold">Avaa dashboard</a></p></div>')
+    intro = f"Vuokraoven ilmoitusmäärät on päivitetty {fi_date(last)}."
+    scope = "Vuokra: kerrostalot, kaikki huoneluvut, vuokra-asunnot, sekä heti vapaat että myöhemmin vapautuvat."
+    text = "\n".join([intro, "", f"Dashboard: {DASHBOARD_URL}", "", scope, ""]
+                     + [f"{a}\t{b}\t{c}" for a, b, c in rent] + [""] + [f"{a}\t{b}\t{c}" for a, b, c in aso])
+
+    td = "font-family:Arial,sans-serif;font-size:14px;padding:2px 16px 2px 0"
+    def tr(a, b, c):
+        return (f'<tr><td style="{td}">{a}</td><td style="{td};text-align:right"><b>{b}</b></td>'
+                f'<td style="{td};padding-right:0;color:#6b766e">{c}</td></tr>')
+    gap = '<tr><td colspan="3" style="height:14px;line-height:14px;font-size:1px">&nbsp;</td></tr>'
+    table = ('<table style="border-collapse:collapse;margin:0 0 14px">' + "".join(tr(*r) for r in rent)
+             + (gap if rent and aso else "") + "".join(tr(*r) for r in aso) + "</table>")
+    html = (f'<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.4">'
+            f'<p style="margin:0 0 14px">{intro}</p>'
+            f'<p style="margin:0 0 14px"><a href="{DASHBOARD_URL}" style="color:#004722;font-weight:bold">Avaa dashboard</a></p>'
+            f'<p style="margin:0 0 8px">{scope}</p>'
+            f'{table}</div>')
     card = {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "type": "AdaptiveCard", "version": "1.4",
-        "body": [{"type": "TextBlock", "text": subject, "weight": "Bolder", "size": "Medium", "wrap": True},
-                 {"type": "TextBlock", "text": intro, "wrap": True, "isSubtle": True},
-                 {"type": "FactSet", "facts": [{"title": a, "value": f"{b}  ({c})"} for a, b, c in rows]}],
+        "body": [{"type": "TextBlock", "text": intro, "weight": "Bolder", "wrap": True},
+                 {"type": "TextBlock", "text": scope, "wrap": True, "isSubtle": True, "spacing": "Medium"},
+                 {"type": "FactSet", "facts": [{"title": a, "value": f"{b}  ({c})"} for a, b, c in rent]},
+                 {"type": "FactSet", "spacing": "Medium", "facts": [{"title": a, "value": f"{b}  ({c})"} for a, b, c in aso]}],
         "actions": [{"type": "Action.OpenUrl", "title": "Avaa dashboard", "url": DASHBOARD_URL}],
     }
     return {"subject": subject, "html": html, "text": text, "date": last, "url": DASHBOARD_URL,
